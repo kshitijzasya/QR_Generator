@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>QR Generator</title>
+    <style>
+      :root {
+        --card-bg: #f5f6f8;
+        --text: #101219;
+        --muted: #808796;
+        --line: #d7dbe3;
+        --accent: #1d9bf0;
+        --accent-soft: #dbf1ff;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+        color: var(--text);
+        background: linear-gradient(165deg, #1297ef 0%, #1297ef 58%, #f2e900 58%, #f2e900 100%);
+        display: grid;
+        place-items: center;
+        padding: 20px;
+      }
+
+      .card {
+        width: min(100%, 680px);
+        border-radius: 14px;
+        border: 2px solid #161922;
+        background: var(--card-bg);
+        box-shadow: 0 16px 24px rgba(0, 0, 0, 0.18);
+        padding: 28px 36px;
+      }
+
+      .brand {
+        display: inline-flex;
+        gap: 10px;
+        align-items: center;
+        font-weight: 700;
+        font-size: 28px;
+      }
+
+      .brand-badge {
+        width: 16px;
+        height: 16px;
+        transform: rotate(45deg);
+        border-radius: 4px;
+        background: linear-gradient(145deg, #0094ff 0%, #005ce6 100%);
+      }
+
+      h1 {
+        margin: 20px 0 6px;
+        font-size: 42px;
+        line-height: 1.1;
+      }
+
+      .sub {
+        margin: 0 0 18px;
+        color: var(--muted);
+        font-size: 15px;
+      }
+
+      .tabs {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        margin-bottom: 20px;
+      }
+
+      .tab {
+        position: relative;
+        color: #98a0af;
+        font-size: 13px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid var(--line);
+      }
+
+      .tab.active {
+        color: var(--accent);
+        font-weight: 600;
+        border-bottom-color: var(--accent);
+      }
+
+      label {
+        display: block;
+        margin: 14px 0 6px;
+        font-size: 13px;
+        color: #5b6271;
+        font-weight: 600;
+      }
+
+      .field,
+      .select,
+      .file {
+        width: 100%;
+        border: 1px solid #c7ccd5;
+        border-radius: 6px;
+        padding: 12px;
+        font-size: 15px;
+        background: #fff;
+      }
+
+      .file {
+        padding: 10px;
+      }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+
+      .color-wrap {
+        border: 1px solid #c7ccd5;
+        border-radius: 6px;
+        background: #fff;
+        padding: 6px 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .color-wrap input {
+        width: 44px;
+        height: 34px;
+        border: 0;
+        padding: 0;
+        background: transparent;
+      }
+
+      .color-code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 13px;
+        color: #454c5b;
+      }
+
+      .actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      .btn {
+        border: 1px solid transparent;
+        border-radius: 6px;
+        padding: 10px 22px;
+        font-weight: 700;
+        font-size: 14px;
+        cursor: pointer;
+      }
+
+      .btn.secondary {
+        background: #fff;
+        border-color: #ccd2dc;
+      }
+
+      .btn.primary {
+        background: var(--accent);
+        color: #fff;
+      }
+
+      .preview {
+        margin-top: 18px;
+        padding: 16px;
+        border: 1px solid #d6dbe5;
+        border-radius: 10px;
+        background: #fff;
+        display: none;
+      }
+
+      .preview.show {
+        display: block;
+      }
+
+      .preview-head {
+        font-weight: 700;
+        margin-bottom: 10px;
+      }
+
+      .preview img {
+        width: min(100%, 260px);
+        height: auto;
+        border: 1px solid #e3e7ef;
+        border-radius: 8px;
+        background: #fafbff;
+      }
+
+      .download-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+      }
+
+      .btn.download {
+        background: var(--accent-soft);
+        color: #005799;
+      }
+
+      .btn.download:disabled {
+        background: #eceff4;
+        color: #a0a8b7;
+        cursor: not-allowed;
+      }
+
+      .error {
+        margin-top: 10px;
+        color: #cc2136;
+        font-size: 13px;
+        min-height: 18px;
+      }
+
+      .help {
+        margin-top: 8px;
+        color: #788091;
+        font-size: 12px;
+      }
+
+      @media (max-width: 760px) {
+        .card {
+          padding: 22px 18px;
+        }
+
+        h1 {
+          font-size: 32px;
+        }
+
+        .grid-2 {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <div class="brand"><span class="brand-badge"></span>InsideBox</div>
+      <h1>What's your QR about?</h1>
+      <p class="sub">Enter your details and generate a preview first.</p>
+
+      <div class="tabs" aria-hidden="true">
+        <div class="tab active">Details</div>
+        <div class="tab">Date and location</div>
+        <div class="tab">Guests</div>
+      </div>
+
+      <form id="qr-form" enctype="multipart/form-data">
+        <label for="data">Title / Link / Content</label>
+        <input id="data" class="field" name="data" type="text" placeholder="https://forms.gle/..." required />
+
+        <div class="grid-2">
+          <div>
+            <label for="qr_color">QR Content Color</label>
+            <div class="color-wrap">
+              <input id="qr_color" name="qr_color" type="color" value="#000000" />
+              <span id="qr_color_text" class="color-code">#000000</span>
+            </div>
+          </div>
+
+          <div>
+            <label for="border_color">Border Color</label>
+            <div class="color-wrap">
+              <input id="border_color" name="border_color" type="color" value="#000000" />
+              <span id="border_color_text" class="color-code">#000000</span>
+            </div>
+          </div>
+        </div>
+
+        <label for="logo">Center Logo (optional)</label>
+        <input id="logo" class="file" name="logo" type="file" accept="image/*" />
+
+        <div class="actions">
+          <button type="button" class="btn secondary" id="clear-btn">Cancel</button>
+          <button type="submit" class="btn primary" id="preview-btn">Preview</button>
+        </div>
+      </form>
+
+      <section id="preview-section" class="preview">
+        <div class="preview-head">Preview</div>
+        <img id="preview-image" alt="Generated QR preview" />
+        <div class="download-row">
+          <button type="button" class="btn download" data-format="png">Download PNG</button>
+          <button type="button" class="btn download" data-format="jpeg">Download JPEG</button>
+          <button type="button" class="btn download" data-format="svg" id="svg-download">Download SVG</button>
+        </div>
+        <p class="help" id="svg-help"></p>
+      </section>
+
+      <p class="error" id="error"></p>
+    </main>
+
+    <script>
+      const form = document.getElementById("qr-form");
+      const previewSection = document.getElementById("preview-section");
+      const previewImage = document.getElementById("preview-image");
+      const errorEl = document.getElementById("error");
+      const clearBtn = document.getElementById("clear-btn");
+      const qrColor = document.getElementById("qr_color");
+      const borderColor = document.getElementById("border_color");
+      const qrColorText = document.getElementById("qr_color_text");
+      const borderColorText = document.getElementById("border_color_text");
+      const logoInput = document.getElementById("logo");
+      const svgBtn = document.getElementById("svg-download");
+      const svgHelp = document.getElementById("svg-help");
+      let currentPreviewUrl = null;
+
+      function setError(msg) {
+        errorEl.textContent = msg || "";
+      }
+
+      function updateColorLabels() {
+        qrColorText.textContent = qrColor.value;
+        borderColorText.textContent = borderColor.value;
+      }
+
+      function updateSvgAvailability() {
+        const hasLogo = logoInput.files && logoInput.files.length > 0;
+        const customBorder = (borderColor.value || "").toLowerCase() !== "#000000";
+        const blocked = hasLogo || customBorder;
+        svgBtn.disabled = blocked;
+        svgHelp.textContent = blocked
+          ? "SVG download is disabled when logo is added or border color is custom."
+          : "";
+      }
+
+      function buildFormData(format) {
+        const fd = new FormData(form);
+        if (format) {
+          fd.set("format", format);
+        }
+        return fd;
+      }
+
+      async function parseError(response) {
+        try {
+          const payload = await response.json();
+          return payload.error || "Request failed";
+        } catch (err) {
+          return "Request failed";
+        }
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        setError("");
+
+        const response = await fetch("/api/qr/preview", {
+          method: "POST",
+          body: buildFormData("png"),
+        });
+
+        if (!response.ok) {
+          setError(await parseError(response));
+          return;
+        }
+
+        const blob = await response.blob();
+        if (currentPreviewUrl) {
+          URL.revokeObjectURL(currentPreviewUrl);
+        }
+        currentPreviewUrl = URL.createObjectURL(blob);
+        previewImage.src = currentPreviewUrl;
+        previewSection.classList.add("show");
+      });
+
+      document.querySelectorAll("[data-format]").forEach((button) => {
+        button.addEventListener("click", async () => {
+          setError("");
+          const format = button.getAttribute("data-format");
+          const response = await fetch("/api/qr", {
+            method: "POST",
+            body: buildFormData(format),
+          });
+
+          if (!response.ok) {
+            setError(await parseError(response));
+            return;
+          }
+
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = `qrcode.${format}`;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          URL.revokeObjectURL(url);
+        });
+      });
+
+      clearBtn.addEventListener("click", () => {
+        form.reset();
+        updateColorLabels();
+        updateSvgAvailability();
+        setError("");
+        previewSection.classList.remove("show");
+        if (currentPreviewUrl) {
+          URL.revokeObjectURL(currentPreviewUrl);
+          currentPreviewUrl = null;
+        }
+      });
+
+      qrColor.addEventListener("input", updateColorLabels);
+      borderColor.addEventListener("input", () => {
+        updateColorLabels();
+        updateSvgAvailability();
+      });
+      logoInput.addEventListener("change", updateSvgAvailability);
+
+      updateColorLabels();
+      updateSvgAvailability();
+    </script>
+  </body>
+</html>
