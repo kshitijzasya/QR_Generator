@@ -1,0 +1,204 @@
+{
+  "system_name": "youtube_content_research_tool",
+  "version": "1.0.0",
+  "mode": "deterministic_non_llm",
+  "core_principles": [
+    "Use YouTube API research plus local rules only",
+    "Do not use LLM-generated text",
+    "Prefer evidence-based recommendations over fabricated originality",
+    "Optimize for copy-ready output",
+    "Prefer phrase extraction over single-word extraction",
+    "Keep outputs relevant to the user's exact topic"
+  ],
+  "input_rules": {
+    "required_fields": ["idea", "platform", "content_type"],
+    "optional_fields": [
+      "keywords",
+      "language",
+      "region_code",
+      "search_mode"
+    ],
+    "normalization_rules": [
+      "Trim whitespace",
+      "Lowercase internal comparison values where needed",
+      "Split manual keywords on commas",
+      "Remove duplicate manual keywords",
+      "Normalize platform and content_type to known values"
+    ]
+  },
+  "research_rules": {
+    "max_search_queries_per_request": 3,
+    "max_search_results_per_query": 10,
+    "deduplicate_video_ids": true,
+    "preferred_search_types": ["exact", "broad", "angle_based"],
+    "youtube_api_parts": {
+      "search_list": ["snippet"],
+      "videos_list": ["snippet", "statistics"]
+    },
+    "quota_safety_rules": [
+      "Do not run unnecessary duplicate searches",
+      "Cache repeated research requests",
+      "Use one batched videos.list call after collecting IDs"
+    ]
+  },
+  "competitor_scoring_rules": {
+    "enabled": true,
+    "weights": {
+      "keyword_match": 0.3,
+      "title_quality": 0.2,
+      "freshness": 0.15,
+      "views_signal": 0.2,
+      "engagement_signal": 0.15
+    },
+    "selection_rule": "Use top scored competitors for downstream extraction"
+  },
+  "extraction_rules": {
+    "extract_from": ["title", "description", "tags"],
+    "prefer_phrases": true,
+    "phrase_lengths": [2, 3],
+    "remove_stopwords": true,
+    "remove_duplicates": true,
+    "boost_exact_topic_matches": true,
+    "ignore_irrelevant_broad_terms": true
+  },
+  "keyword_bucket_rules": {
+    "buckets": {
+      "primary": {
+        "description": "Most relevant phrases tightly matching the user's topic",
+        "max_items": 7
+      },
+      "supporting": {
+        "description": "Closely related phrases that add context and discoverability",
+        "max_items": 7
+      },
+      "broad": {
+        "description": "Wider niche discovery terms that stay relevant",
+        "max_items": 7
+      }
+    }
+  },
+  "title_rules": {
+    "generate_count": 5,
+    "min_chars": 35,
+    "max_chars": 60,
+    "keyword_frontload": true,
+    "prefer_patterns": [
+      "keyword_plus_curiosity",
+      "why_it_matters",
+      "x_vs_y",
+      "explained",
+      "what_changed"
+    ],
+    "avoid_patterns": [
+      "generic clickbait with no topic anchor",
+      "keyword stuffing",
+      "vague titles with no clear subject"
+    ]
+  },
+  "description_rules": {
+    "generate_count": 3,
+    "mode": "template_based",
+    "max_length_chars": 500,
+    "requirements": [
+      "Include primary keyword early",
+      "Explain the topic angle clearly",
+      "Include a lightweight CTA",
+      "Remain short and copy-ready"
+    ],
+    "avoid": [
+      "long rambling descriptions",
+      "copied competitor sentences",
+      "keyword stuffing"
+    ]
+  },
+  "hashtag_rules": {
+    "min_count": 8,
+    "max_count": 12,
+    "construction_rules": [
+      "Use short readable tags",
+      "Mix primary and supporting topic terms",
+      "Keep them social-facing, not sentence-like",
+      "Do not convert every keyword into a hashtag"
+    ],
+    "avoid": [
+      "irrelevant trending hashtags",
+      "overly long hashtags",
+      "duplicates"
+    ]
+  },
+  "seo_tag_rules": {
+    "min_count": 10,
+    "max_count": 20,
+    "format": "comma_separated_phrases",
+    "construction_rules": [
+      "Prefer long-tail search phrases",
+      "Include exact topic phrase where relevant",
+      "Include keyword variations",
+      "Keep tags tightly related to the user's idea"
+    ],
+    "avoid": [
+      "single-word spam terms",
+      "irrelevant broad niche stuffing",
+      "duplicates"
+    ]
+  },
+  "thumbnail_text_rules": {
+    "generate_count": 5,
+    "max_words": 4,
+    "requirements": [
+      "Short and bold",
+      "High-contrast friendly",
+      "Connected to main topic",
+      "Usable as overlay text"
+    ],
+    "avoid": [
+      "full sentences",
+      "tiny-detail phrases",
+      "generic words with no meaning"
+    ]
+  },
+  "thumbnail_idea_rules": {
+    "generate_count": 3,
+    "requirements": [
+      "Focus on one core visual idea",
+      "Highlight conflict, reveal, or main object",
+      "Support title instead of duplicating it",
+      "Stay easy to understand at small size"
+    ]
+  },
+  "output_layout_rules": {
+    "copy_first": true,
+    "sections": [
+      "best_title",
+      "alternative_titles",
+      "best_description",
+      "best_hashtags",
+      "best_seo_tags",
+      "best_thumbnail_text",
+      "alternative_thumbnail_texts",
+      "thumbnail_ideas",
+      "keyword_buckets",
+      "competitor_cards"
+    ],
+    "ui_requirements": [
+      "Each major section must have a copy button",
+      "Render copyable content in input or textarea blocks",
+      "Keep result groups visually separated",
+      "Show research evidence to build trust"
+    ]
+  },
+  "quality_guardrails": {
+    "must_be": [
+      "relevant",
+      "copyable",
+      "structured",
+      "easy to scan"
+    ],
+    "must_not_be": [
+      "fabricated",
+      "overly generic",
+      "bloated",
+      "hard to copy"
+    ]
+  }
+}

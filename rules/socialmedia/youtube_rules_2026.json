@@ -1,0 +1,126 @@
+{
+  "youtube_seo_rules_2026": {
+    "keyword_research": {
+      "rules": [
+        "Always identify a primary keyword before creating content.",
+        "Prefer long-tail keywords (3-5 words) with clear search intent.",
+        "Analyze competitor videos ranking for the same keyword.",
+        "Use question-based keywords to match user queries.",
+        "Focus on intent over search volume."
+      ]
+    },
+
+    "title_optimization": {
+      "max_length": 60,
+      "rules": [
+        "Place the primary keyword near the beginning of the title.",
+        "Keep titles under 60 characters for full visibility.",
+        "Include numbers, benefits, or strong curiosity triggers.",
+        "Avoid vague titles that do not reflect search intent.",
+        "Use clear language instead of keyword stuffing."
+      ],
+      "example_patterns": [
+        "How to [Achieve Result] in [Year]",
+        "[Number] Tips to [Solve Problem]",
+        "The Ultimate Guide to [Topic]",
+        "[Topic] Explained in [Timeframe]"
+      ]
+    },
+
+    "description_optimization": {
+      "optimal_length": "150-300 words",
+      "rules": [
+        "Include the primary keyword within the first two sentences.",
+        "Clearly explain what the video covers.",
+        "Add secondary keywords naturally throughout the description.",
+        "Include timestamps if the video is long.",
+        "Add links to related content or resources."
+      ]
+    },
+
+    "tags_and_keywords": {
+      "recommended_count": "10-20",
+      "rules": [
+        "Use a mix of broad keywords and specific long-tail keywords.",
+        "Include variations of the primary keyword.",
+        "Add related topics and synonyms.",
+        "Avoid irrelevant tags."
+      ]
+    },
+
+    "thumbnail_optimization": {
+      "rules": [
+        "Use high contrast colors to stand out in search results.",
+        "Include a clear focal point such as a face or key object.",
+        "Add short text (2-4 words) reinforcing the title.",
+        "Ensure thumbnails remain readable on small mobile screens.",
+        "Avoid cluttered design."
+      ]
+    },
+
+    "engagement_signals": {
+      "rules": [
+        "Encourage viewers to like, comment, and subscribe.",
+        "Use strong hooks in the first 5-10 seconds.",
+        "Design content to maximize audience retention.",
+        "Respond to comments to increase interaction.",
+        "Use calls-to-action to drive engagement."
+      ]
+    },
+
+    "video_structure": {
+      "rules": [
+        "Start with a strong hook that introduces the value of the video.",
+        "Deliver the promised content quickly without long intros.",
+        "Use clear sections or chapters to organize information.",
+        "Maintain pacing to prevent audience drop-off."
+      ]
+    },
+
+    "algorithm_factors": {
+      "key_metrics": [
+        "Audience retention",
+        "Click-through rate (CTR)",
+        "Watch time",
+        "User engagement (likes, comments, shares)"
+      ],
+      "rules": [
+        "High retention improves recommendation chances.",
+        "CTR is strongly influenced by title and thumbnail quality.",
+        "Watch time signals video value to the algorithm.",
+        "Consistent engagement improves ranking."
+      ]
+    },
+
+    "content_strategy": {
+      "rules": [
+        "Build topical authority by creating multiple videos around the same theme.",
+        "Repurpose content across platforms with platform-specific adjustments.",
+        "Update and improve older videos periodically.",
+        "Focus on solving specific audience problems."
+      ]
+    },
+
+    "ai_and_tools": {
+      "recommended_tools": [
+        "Google Search Console",
+        "Google Analytics",
+        "YouTube Studio",
+        "Keyword research tools (Ahrefs, Semrush, etc.)"
+      ],
+      "rules": [
+        "Use AI for keyword research and content outlines.",
+        "Analyze competitors using SEO tools.",
+        "Track ranking and traffic performance regularly."
+      ]
+    },
+
+    "expected_results_timeline": {
+      "rules": [
+        "SEO results usually appear after 3-6 months.",
+        "Consistency is more important than occasional uploads.",
+        "Track growth through organic traffic and keyword rankings."
+      ]
+    }
+  }
+}

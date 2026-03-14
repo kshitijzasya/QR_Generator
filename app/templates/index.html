@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}" />
-    <title>QR Generator</title>
+    <title>InsideBox Tools</title>
     <style>
       :root {
         --card-bg: #f5f6f8;
@@ -29,7 +29,7 @@
       }
 
       .card {
-        width: min(100%, 680px);
+        width: min(100%, 860px);
         border-radius: 14px;
         border: 2px solid #161922;
         background: var(--card-bg);
@@ -77,6 +77,12 @@
         font-size: 13px;
         padding-bottom: 8px;
         border-bottom: 2px solid var(--line);
+        border-top: 0;
+        border-left: 0;
+        border-right: 0;
+        background: transparent;
+        text-align: left;
+        cursor: pointer;
       }
 
       .tab.active {
@@ -93,6 +99,17 @@
         font-weight: 600;
       }
 
+      .mode-option {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 8px 0;
+      }
+
+      .mode-option input {
+        margin: 0;
+      }
+
       .field,
       .select,
       .file {
@@ -106,6 +123,11 @@
 
       .file {
         padding: 10px;
+      }
+
+      .textarea {
+        min-height: 96px;
+        resize: vertical;
       }
 
       .grid-2 {
@@ -221,6 +243,91 @@
         font-size: 12px;
       }
 
+      .module-tabs {
+        margin-bottom: 18px;
+      }
+
+      .tool-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+
+      .tool-card {
+        border: 1px solid #cad1dd;
+        border-radius: 12px;
+        background: #fff;
+        text-align: left;
+        padding: 18px;
+        cursor: pointer;
+        display: grid;
+        gap: 8px;
+        transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+      }
+
+      .tool-card:hover {
+        border-color: #80c7f6;
+        box-shadow: 0 10px 20px rgba(19, 39, 74, 0.12);
+        transform: translateY(-1px);
+      }
+
+      .tool-kicker {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #5d6b82;
+      }
+
+      .tool-title {
+        font-size: 23px;
+        font-weight: 700;
+        color: #1a2131;
+      }
+
+      .tool-copy {
+        color: #5a6374;
+        font-size: 14px;
+      }
+
+      .tool-head {
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .back-btn {
+        padding: 8px 14px;
+        font-size: 12px;
+      }
+
+      .seo-results {
+        margin-top: 18px;
+        border: 1px solid #d6dbe5;
+        border-radius: 10px;
+        background: #fff;
+        padding: 16px;
+      }
+
+      .seo-head {
+        margin: 0 0 8px;
+        font-size: 16px;
+      }
+
+      .seo-text {
+        margin: 0 0 14px;
+        color: #232936;
+        line-height: 1.5;
+      }
+
+      .seo-list {
+        margin: 0 0 14px;
+        padding-left: 18px;
+      }
+
+      .seo-list li {
+        margin-bottom: 6px;
+      }
+
       @media (max-width: 760px) {
         .card {
           padding: 22px 18px;
@@ -233,181 +340,15 @@
         .grid-2 {
           grid-template-columns: 1fr;
         }
+
+        .tool-grid {
+          grid-template-columns: 1fr;
+        }
       }
     </style>
   </head>
   <body>
-    <main class="card">
-      <div class="brand"><span class="brand-badge"></span>InsideBox</div>
-      <h1>What's your QR about?</h1>
-      <p class="sub">Enter your details and generate a preview first.</p>
-
-      <form id="qr-form" enctype="multipart/form-data">
-        <label for="data">Title / Link / Content</label>
-        <input id="data" class="field" name="data" type="text" placeholder="https://forms.gle/..." required />
-
-        <div class="grid-2">
-          <div>
-            <label for="qr_color">QR Content Color</label>
-            <div class="color-wrap">
-              <input id="qr_color" name="qr_color" type="color" value="#000000" />
-              <span id="qr_color_text" class="color-code">#000000</span>
-            </div>
-          </div>
-
-          <div>
-            <label for="border_color">Border Color</label>
-            <div class="color-wrap">
-              <input id="border_color" name="border_color" type="color" value="#000000" />
-              <span id="border_color_text" class="color-code">#000000</span>
-            </div>
-          </div>
-        </div>
-
-        <label for="logo">Center Logo (optional)</label>
-        <input id="logo" class="file" name="logo" type="file" accept="image/*" />
-
-        <div class="actions">
-          <button type="button" class="btn secondary" id="clear-btn">Cancel</button>
-          <button type="submit" class="btn primary" id="preview-btn">Preview</button>
-        </div>
-      </form>
-
-      <section id="preview-section" class="preview">
-        <div class="preview-head">Preview</div>
-        <img id="preview-image" alt="Generated QR preview" />
-        <div class="download-row">
-          <button type="button" class="btn download" data-format="png">Download PNG</button>
-          <button type="button" class="btn download" data-format="jpeg">Download JPEG</button>
-          <button type="button" class="btn download" data-format="svg" id="svg-download">Download SVG</button>
-        </div>
-        <p class="help" id="svg-help"></p>
-      </section>
-
-      <p class="error" id="error"></p>
-    </main>
-
-    <script>
-      const form = document.getElementById("qr-form");
-      const previewSection = document.getElementById("preview-section");
-      const previewImage = document.getElementById("preview-image");
-      const errorEl = document.getElementById("error");
-      const clearBtn = document.getElementById("clear-btn");
-      const qrColor = document.getElementById("qr_color");
-      const borderColor = document.getElementById("border_color");
-      const qrColorText = document.getElementById("qr_color_text");
-      const borderColorText = document.getElementById("border_color_text");
-      const logoInput = document.getElementById("logo");
-      const svgBtn = document.getElementById("svg-download");
-      const svgHelp = document.getElementById("svg-help");
-      let currentPreviewUrl = null;
-
-      function setError(msg) {
-        errorEl.textContent = msg || "";
-      }
-
-      function updateColorLabels() {
-        qrColorText.textContent = qrColor.value;
-        borderColorText.textContent = borderColor.value;
-      }
-
-      function updateSvgAvailability() {
-        const hasLogo = logoInput.files && logoInput.files.length > 0;
-        const customBorder = (borderColor.value || "").toLowerCase() !== "#000000";
-        const blocked = hasLogo || customBorder;
-        svgBtn.disabled = blocked;
-        svgHelp.textContent = blocked
-          ? "SVG download is disabled when logo is added or border color is custom."
-          : "";
-      }
-
-      function buildFormData(format) {
-        const fd = new FormData(form);
-        if (format) {
-          fd.set("format", format);
-        }
-        return fd;
-      }
-
-      async function parseError(response) {
-        try {
-          const payload = await response.json();
-          return payload.error || "Request failed";
-        } catch (err) {
-          return "Request failed";
-        }
-      }
-
-      form.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        setError("");
-
-        const response = await fetch("/api/qr/preview", {
-          method: "POST",
-          body: buildFormData("png"),
-        });
-
-        if (!response.ok) {
-          setError(await parseError(response));
-          return;
-        }
-
-        const blob = await response.blob();
-        if (currentPreviewUrl) {
-          URL.revokeObjectURL(currentPreviewUrl);
-        }
-        currentPreviewUrl = URL.createObjectURL(blob);
-        previewImage.src = currentPreviewUrl;
-        previewSection.classList.add("show");
-      });
-
-      document.querySelectorAll("[data-format]").forEach((button) => {
-        button.addEventListener("click", async () => {
-          setError("");
-          const format = button.getAttribute("data-format");
-          const response = await fetch("/api/qr", {
-            method: "POST",
-            body: buildFormData(format),
-          });
-
-          if (!response.ok) {
-            setError(await parseError(response));
-            return;
-          }
-
-          const blob = await response.blob();
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement("a");
-          link.href = url;
-          link.download = `qrcode.${format}`;
-          document.body.appendChild(link);
-          link.click();
-          link.remove();
-          URL.revokeObjectURL(url);
-        });
-      });
-
-      clearBtn.addEventListener("click", () => {
-        form.reset();
-        updateColorLabels();
-        updateSvgAvailability();
-        setError("");
-        previewSection.classList.remove("show");
-        if (currentPreviewUrl) {
-          URL.revokeObjectURL(currentPreviewUrl);
-          currentPreviewUrl = null;
-        }
-      });
-
-      qrColor.addEventListener("input", updateColorLabels);
-      borderColor.addEventListener("input", () => {
-        updateColorLabels();
-        updateSvgAvailability();
-      });
-      logoInput.addEventListener("change", updateSvgAvailability);
-
-      updateColorLabels();
-      updateSvgAvailability();
-    </script>
+    <main id="app" class="card"></main>
+    <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
   </body>
 </html>

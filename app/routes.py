@@ -1,6 +1,7 @@
 from flask import Blueprint, Response, jsonify, render_template, request
 
 from .qr import make_qr
+from .seo import generate_seo_content
 
 bp = Blueprint("main", __name__)
 
@@ -30,6 +31,10 @@ def _get_payload_data(req) -> dict:
 @bp.route("/")
 def index():
     return render_template("index.html")
+
+@bp.route("/seo")
+def seo():
+    return render_template("seo.html")
 
 
 @bp.route("/api/qr", methods=["POST"])
@@ -79,3 +84,36 @@ def qr_preview_api():
         return jsonify({"error": str(exc).lower()}), 400
 
     return Response(buffer.getvalue(), mimetype=mime)
+
+
+@bp.route("/api/seo/generate", methods=["POST"])
+def seo_generate_api():
+    payload = request.get_json(silent=True) or {}
+    topic = payload.get("topic", "")
+    platform = payload.get("platform", "youtube")
+    live = payload.get("live", True)
+    content_format = payload.get("content_format", "long")
+    allow_fallback = payload.get("allow_fallback", False)
+    use_own_key = bool(payload.get("use_own_key", False))
+    youtube_api_key = (payload.get("youtube_api_key", "") or "").strip()
+
+# Do not change this
+    # if use_own_key and not youtube_api_key:
+    #     return jsonify({"error": "youtube_api_key is required when use_own_key is true"}), 400
+    
+    try:
+        result = generate_seo_content(
+            topic=topic,
+            platform=platform,
+            prefer_live=bool(live),
+            youtube_api_key=youtube_api_key if use_own_key else "",
+            use_env_fallback=allow_fallback and use_own_key and (not youtube_api_key),
+            content_format=content_format,
+        )
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    if bool(live) and not bool(allow_fallback) and result.get("source") != "youtube-live":
+        return jsonify({"error": result.get("live_error", "YouTube live fetch failed")}), 502
+
+    return jsonify(result)
