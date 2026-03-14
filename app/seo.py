@@ -325,16 +325,21 @@ def _fetch_youtube_competitors(
     api_key: str = "",
     use_env_fallback: bool = True,
 ) -> list[CompetitorVideo]:
-    service = _build_youtube_service(api_key=api_key, use_env_fallback=use_env_fallback)
-    video_ids = _youtube_search_ids(service, topic=topic, content_format=content_format)
-    if not video_ids:
-        return []
+    try:
+        service = _build_youtube_service(api_key=api_key, use_env_fallback=use_env_fallback)
+        video_ids = _youtube_search_ids(service, topic=topic, content_format=content_format)
+        if not video_ids:
+            return []
 
-    response = service.videos().list(
-        part="snippet,statistics,contentDetails",
-        id=",".join(video_ids),
-        maxResults=len(video_ids),
-    ).execute()
+        response = service.videos().list(
+            part="snippet,statistics,contentDetails",
+            id=",".join(video_ids),
+            maxResults=len(video_ids),
+        ).execute()
+    except RuntimeError:
+        raise
+    except Exception as exc:
+        raise RuntimeError(f"YouTube live fetch failed: {exc}") from exc
 
     competitors: list[CompetitorVideo] = []
     for item in response.get("items", []):
@@ -762,7 +767,6 @@ def _generate_ai_candidate(
 
     content = completion.choices[0].message.content if completion.choices else ""
     payload = _extract_json_object(content or "")
-    print(payload)
     return _normalize_ai_result(payload, topic=topic, platform=platform, content_format=content_format)
 
 
@@ -912,6 +916,44 @@ def _select_best_result(candidates: list[dict[str, Any]], output_rules: dict[str
     )
 
 
+def _select_candidates_with_meta(
+    candidates: list[dict[str, Any]],
+    output_rules: dict[str, Any],
+    ai_error: str = "",
+) -> dict[str, Any]:
+    selected = _select_best_result(candidates, output_rules)
+    scored_sources = {
+        candidate.get("source", "unknown"): candidate.get("quality_scores", {}).get("overall_score", 0)
+        for candidate in candidates
+        if candidate.get("quality_scores")
+    }
+    selected["candidate_sources"] = [candidate.get("source", "unknown") for candidate in candidates]
+    selected["selection_meta"] = {
+        "selected_source": selected.get("source", "unknown"),
+        "scores_by_source": scored_sources,
+        "ai_candidate_generated": any(candidate.get("source") == "ai-model" for candidate in candidates),
+        "ai_error": ai_error,
+    }
+    return selected
+
+
+def _build_ai_fallback_candidate(
+    topic: str,
+    platform: str,
+    content_format: str,
+    local_response: dict[str, Any],
+) -> dict[str, Any] | None:
+    keyword_buckets = local_response.get("research", {}).get("keyword_buckets", {})
+    competitors: list[CompetitorVideo] = []
+    return _generate_ai_candidate(
+        topic=topic,
+        platform=platform,
+        content_format=content_format,
+        competitors=competitors,
+        keyword_buckets=keyword_buckets,
+    )
+
+
 def _build_live_response(
     topic: str,
     rules: SocialRules,
@@ -967,13 +1009,18 @@ def _build_live_response(
             ],
         },
     }
-    ai_candidate = _generate_ai_candidate(
-        topic=topic,
-        platform=platform,
-        content_format=content_format,
-        competitors=ranked,
-        keyword_buckets=buckets,
-    )
+    ai_error = ""
+    try:
+        ai_candidate = _generate_ai_candidate(
+            topic=topic,
+            platform=platform,
+            content_format=content_format,
+            competitors=ranked,
+            keyword_buckets=buckets,
+        )
+    except RuntimeError as exc:
+        ai_candidate = None
+        ai_error = str(exc)
 
     candidates = [deterministic_result]
     if ai_candidate is not None:
@@ -981,9 +1028,7 @@ def _build_live_response(
         ai_candidate["insights"] = deterministic_result["insights"]
         candidates.append(ai_candidate)
 
-    selected = _select_best_result(candidates, output_rules)
-    selected["candidate_sources"] = [candidate.get("source", "unknown") for candidate in candidates]
-    return selected
+    return _select_candidates_with_meta(candidates, output_rules, ai_error=ai_error)
 
 
 def generate_seo_content(
@@ -1009,9 +1054,34 @@ def generate_seo_content(
         content_format=normalized_format,
         output_rules=output_rules,
     )
-    
+
+    def _finalize_fallback_response(live_error: str = "") -> dict[str, Any]:
+        fallback_response = dict(local_response)
+        fallback_response["source"] = "local-rules"
+        if live_error:
+            fallback_response["live_error"] = live_error
+
+        ai_error = ""
+        candidates = [fallback_response]
+        try:
+            ai_candidate = _build_ai_fallback_candidate(
+                topic=clean_topic,
+                platform=clean_platform,
+                content_format=normalized_format,
+                local_response=fallback_response,
+            )
+        except RuntimeError as exc:
+            ai_candidate = None
+            ai_error = str(exc)
+
+        if ai_candidate is not None:
+            ai_candidate["research"] = fallback_response.get("research", {})
+            candidates.append(ai_candidate)
+
+        return _select_candidates_with_meta(candidates, output_rules, ai_error=ai_error)
+
     if clean_platform != "youtube" or not prefer_live:
-        return local_response
+        return _finalize_fallback_response()
 
     try:
         competitors = _fetch_youtube_competitors(
@@ -1021,9 +1091,7 @@ def generate_seo_content(
             use_env_fallback=use_env_fallback,
         )
         if not competitors:
-            local_response["source"] = "local-rules"
-            local_response["live_error"] = "No videos returned from YouTube API"
-            return local_response
+            return _finalize_fallback_response("No videos returned from YouTube API")
 
         return _build_live_response(
             topic=clean_topic,
@@ -1034,6 +1102,4 @@ def generate_seo_content(
             competitors=competitors,
         )
     except RuntimeError as exc:
-        local_response["source"] = "local-rules"
-        local_response["live_error"] = str(exc)
-        return local_response
+        return _finalize_fallback_response(str(exc))

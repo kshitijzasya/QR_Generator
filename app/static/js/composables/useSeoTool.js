@@ -4,7 +4,7 @@ export function useSeoTool({ seoForm, seoResult, seoError }) {
   async function generate() {
     seoError.value = "";
 
-    const useOwnLive = Boolean(seoForm.useOwnKey);
+    const useOwnLive = seoForm.keyMode === "own";
     if (useOwnLive && !(seoForm.youtubeApiKey || "").trim()) {
       seoError.value = "Enter your YouTube API key for personal-key mode.";
       return;
@@ -32,7 +32,7 @@ export function useSeoTool({ seoForm, seoResult, seoError }) {
     seoForm.platform = "youtube";
     seoForm.contentFormat = "long";
     seoForm.topic = "";
-    seoForm.useOwnKey = false;
+    seoForm.keyMode = "backup";
     seoForm.youtubeApiKey = "";
     seoError.value = "";
     seoResult.value = null;

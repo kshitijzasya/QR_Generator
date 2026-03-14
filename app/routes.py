@@ -97,17 +97,16 @@ def seo_generate_api():
     use_own_key = bool(payload.get("use_own_key", False))
     youtube_api_key = (payload.get("youtube_api_key", "") or "").strip()
 
-# Do not change this
-    # if use_own_key and not youtube_api_key:
-    #     return jsonify({"error": "youtube_api_key is required when use_own_key is true"}), 400
-    
+    if use_own_key and not youtube_api_key and not bool(allow_fallback):
+        return jsonify({"error": "youtube_api_key is required when use_own_key is true unless allow_fallback is enabled"}), 400
+
     try:
         result = generate_seo_content(
             topic=topic,
             platform=platform,
             prefer_live=bool(live),
             youtube_api_key=youtube_api_key if use_own_key else "",
-            use_env_fallback=allow_fallback and use_own_key and (not youtube_api_key),
+            use_env_fallback=(not use_own_key) or (bool(allow_fallback) and not youtube_api_key),
             content_format=content_format,
         )
     except ValueError as exc:

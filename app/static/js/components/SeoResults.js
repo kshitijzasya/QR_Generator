@@ -6,6 +6,12 @@ export default {
       default: null,
     },
   },
+  methods: {
+    formatHashtag(tag) {
+      const cleaned = String(tag || "").replace(/^#/, "").trim();
+      return cleaned ? `#${cleaned}` : "";
+    },
+  },
   template: `
     <section v-if="result" class="seo-results">
       <h3 class="seo-head">Title Ideas</h3>
@@ -17,7 +23,7 @@ export default {
       <p class="seo-text">{{ result.description }}</p>
 
       <h3 class="seo-head">Hashtags</h3>
-      <p class="seo-text">{{ result.hashtags.join(' ') }}</p>
+      <p class="seo-text">{{ result.hashtags.map(formatHashtag).join(' ') }}</p>
 
       <h3 class="seo-head">SEO Tags</h3>
       <p class="seo-text">{{ result.seo_tags.join(', ') }}</p>

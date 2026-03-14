@@ -182,7 +182,7 @@ def test_seo_generate_requires_topic():
     assert resp.status_code == 400
 
 
-def test_seo_generate_requires_personal_key_when_enabled():
+def test_seo_generate_falls_back_when_personal_key_missing():
     app = create_app()
     client = app.test_client()
     resp = client.post(
@@ -193,6 +193,27 @@ def test_seo_generate_requires_personal_key_when_enabled():
             "live": True,
             "use_own_key": True,
             "youtube_api_key": "",
+            "allow_fallback": True,
+        },
+    )
+    assert resp.status_code == 200
+    payload = resp.get_json()
+    assert payload["source"] == "local-rules"
+    assert "live_error" in payload
+
+
+def test_seo_generate_requires_personal_key_without_fallback():
+    app = create_app()
+    client = app.test_client()
+    resp = client.post(
+        "/api/seo/generate",
+        json={
+            "platform": "youtube",
+            "topic": "how to edit reels fast",
+            "live": True,
+            "use_own_key": True,
+            "youtube_api_key": "",
+            "allow_fallback": False,
         },
     )
     assert resp.status_code == 400

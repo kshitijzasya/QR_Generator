@@ -14,7 +14,7 @@ export default {
       platform: "youtube",
       topic: "",
       contentFormat: "long",
-      useOwnKey: false,
+      keyMode: "backup",
       youtubeApiKey: "",
     });
     const seoResult = ref(null);

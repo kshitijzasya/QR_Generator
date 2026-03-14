@@ -5,6 +5,11 @@ function cleanTag(tag) {
   return String(tag || "").replace(/^#/, "").trim();
 }
 
+function formatHashtag(tag) {
+  const cleaned = cleanTag(tag);
+  return cleaned ? `#${cleaned}` : "";
+}
+
 function uniqueList(items) {
   const out = [];
   const seen = new Set();
@@ -30,7 +35,7 @@ export default {
       topic: "",
       platform: "youtube",
       contentFormat: "long",
-      useOwnKey: false,
+      keyMode: "backup",
       youtubeApiKey: "",
     });
     const result = ref(null);
@@ -42,6 +47,11 @@ export default {
     const topTitle = computed(() => result.value?.titles?.[0] || "");
     const qualityScores = computed(() => result.value?.quality_scores || {});
     const validationChecks = computed(() => result.value?.validation?.checks || {});
+    const selectedSource = computed(() => result.value?.selection_meta?.selected_source || result.value?.source || "unknown");
+    const candidateSources = computed(() => result.value?.candidate_sources || []);
+    const scoresBySource = computed(() => result.value?.selection_meta?.scores_by_source || {});
+    const aiError = computed(() => result.value?.selection_meta?.ai_error || "");
+    const liveError = computed(() => result.value?.live_error || "");
     const overallScore = computed(() => qualityScores.value?.overall_score || 0);
     const titleScore = computed(() => qualityScores.value?.best_title_score || 0);
     const descriptionScore = computed(() => qualityScores.value?.description_score || 0);
@@ -76,7 +86,7 @@ export default {
       const tags = uniqueList((result.value.hashtags || []).map(cleanTag)).slice(0, 15);
 
       return tags.map((label, idx) => ({
-        label,
+        label: formatHashtag(label),
         score: Math.max(55, 74 - idx),
       }));
     });
@@ -148,11 +158,11 @@ export default {
         return;
       }
 
-      const useOwnLive = form.useOwnKey;
-      // if (useOwnLive && !form.youtubeApiKey.trim()) {
-      //   error.value = "Enter your YouTube API key for personal-key mode.";
-      //   return;
-      // }
+      const useOwnLive = form.keyMode === "own";
+      if (useOwnLive && !form.youtubeApiKey.trim()) {
+        error.value = "Enter your YouTube API key for personal-key mode.";
+        return;
+      }
 
       loading.value = true;
       try {
@@ -214,6 +224,8 @@ export default {
     }
 
     return {
+      aiError,
+      candidateSources,
       copyText,
       copyNotice,
       descriptionReadability,
@@ -222,6 +234,7 @@ export default {
       form,
       hookLine,
       loading,
+      liveError,
       onRegenerate,
       onSubmit,
       outlinePoints,
@@ -231,6 +244,8 @@ export default {
       relatedKeywordsText,
       result,
       scoreBadgeClass,
+      scoresBySource,
+      selectedSource,
       hashtagItems,
       hashtagText,
       seoTagItems,
@@ -253,24 +268,46 @@ export default {
       <p class="mt-2 text-sm text-slate-400 md:text-base">Generate title, description, tags, hook, and outline for your video idea.</p>
 
       <form class="mt-4 grid gap-3 rounded-2xl border border-slate-700 bg-gradient-to-br from-slate-900 to-slate-800 p-4 md:grid-cols-[1fr_220px]" @submit.prevent="onSubmit">
-        <label class="md:col-span-2 text-sm text-slate-300">
-          Video format
-        </label>
-        <select
-          class="md:col-span-2 h-12 w-full rounded-xl border border-slate-700 bg-slate-800 px-3 text-slate-100 focus:border-blue-500 focus:outline-none"
-          v-model="form.contentFormat"
-        >
-          <option value="long">Long video</option>
-          <option value="short">Short video / Shorts</option>
-        </select>
+        <div class="md:col-span-2 grid gap-3 lg:grid-cols-2">
+          <div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-3">
+            <div class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Video Format</div>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="cursor-pointer rounded-xl border px-3 py-3 text-sm transition"
+                :class="form.contentFormat === 'long' ? 'border-blue-500 bg-blue-500/10 text-white' : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-600'">
+                <input class="sr-only" type="radio" name="content-format" value="long" v-model="form.contentFormat" />
+                <span class="block font-medium">Long Video</span>
+                <span class="mt-1 block text-xs text-slate-400">Standard YouTube upload</span>
+              </label>
+              <label class="cursor-pointer rounded-xl border px-3 py-3 text-sm transition"
+                :class="form.contentFormat === 'short' ? 'border-blue-500 bg-blue-500/10 text-white' : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-600'">
+                <input class="sr-only" type="radio" name="content-format" value="short" v-model="form.contentFormat" />
+                <span class="block font-medium">Shorts</span>
+                <span class="mt-1 block text-xs text-slate-400">Short-form vertical video</span>
+              </label>
+            </div>
+          </div>
 
-        <label class="md:col-span-2 inline-flex items-center gap-2 text-sm text-slate-300">
-          <input class="h-4 w-4 accent-blue-500" id="use-own-key" type="checkbox" v-model="form.useOwnKey" />
-          Use my YouTube API key (for niche-specific results). If disabled, backup env key is used.
-        </label>
+          <div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-3">
+            <div class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">YouTube Key</div>
+            <div class="grid gap-2">
+              <label class="cursor-pointer rounded-xl border px-3 py-3 text-sm transition"
+                :class="form.keyMode === 'backup' ? 'border-blue-500 bg-blue-500/10 text-white' : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-600'">
+                <input class="sr-only" type="radio" name="key-mode" value="backup" v-model="form.keyMode" />
+                <span class="block font-medium">Use App Backup Key</span>
+                <span class="mt-1 block text-xs text-slate-400">Best for general topic research</span>
+              </label>
+              <label class="cursor-pointer rounded-xl border px-3 py-3 text-sm transition"
+                :class="form.keyMode === 'own' ? 'border-blue-500 bg-blue-500/10 text-white' : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-600'">
+                <input class="sr-only" type="radio" name="key-mode" value="own" v-model="form.keyMode" />
+                <span class="block font-medium">Use My YouTube Key</span>
+                <span class="mt-1 block text-xs text-slate-400">Better for niche-specific search intent</span>
+              </label>
+            </div>
+          </div>
+        </div>
 
         <input
-          v-if="form.useOwnKey"
+          v-if="form.keyMode === 'own'"
           class="md:col-span-2 h-12 w-full rounded-xl border border-slate-700 bg-slate-800 px-3 text-slate-100 placeholder:text-slate-500 focus:border-blue-500 focus:outline-none"
           v-model="form.youtubeApiKey"
           type="password"
@@ -301,6 +338,10 @@ export default {
           <div class="mt-2 text-5xl font-bold text-white">{{ overallScore }}</div>
           <div class="mt-3 text-sm" :class="result.validation?.passed ? 'text-emerald-300' : 'text-rose-300'">
             {{ result.validation?.passed ? 'Passed validation' : 'Needs improvement' }}
+          </div>
+          <div class="mt-4 border-t border-slate-800 pt-4 text-xs text-slate-400">
+            <div>Source: <span class="font-medium text-slate-200">{{ selectedSource }}</span></div>
+            <div v-if="candidateSources.length" class="mt-1">Candidates: <span class="text-slate-300">{{ candidateSources.join(', ') }}</span></div>
           </div>
         </div>
 
@@ -339,6 +380,32 @@ export default {
               <span class="rounded-full border px-2 py-1 text-xs font-semibold" :class="scoreBadgeClass(thumbnailTextScore)">{{ thumbnailTextScore }}</span>
             </div>
             <div class="mt-2 text-xs text-slate-400">Valid: {{ validationChecks.thumbnail_text ? 'yes' : 'no' }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-2xl border border-slate-700 bg-slate-900 p-4">
+        <div class="mb-3 text-sm font-medium text-slate-200">Generation diagnostics</div>
+        <div class="grid gap-3 md:grid-cols-2">
+          <div class="rounded-xl border border-slate-700 bg-slate-800 p-3 text-sm text-slate-300">
+            <div class="mb-2 text-xs uppercase tracking-[0.18em] text-slate-500">Candidate Scores</div>
+            <div v-if="Object.keys(scoresBySource).length" class="space-y-1">
+              <div v-for="(score, sourceName) in scoresBySource" :key="sourceName" class="flex items-center justify-between gap-3">
+                <span>{{ sourceName }}</span>
+                <span class="font-semibold text-white">{{ score }}</span>
+              </div>
+            </div>
+            <div v-else class="text-slate-500">No score data available.</div>
+          </div>
+          <div class="rounded-xl border border-slate-700 bg-slate-800 p-3 text-sm text-slate-300">
+            <div class="mb-2 text-xs uppercase tracking-[0.18em] text-slate-500">Errors</div>
+            <div v-if="liveError" class="mb-2">
+              <span class="font-medium text-amber-300">Live:</span> {{ liveError }}
+            </div>
+            <div v-if="aiError">
+              <span class="font-medium text-amber-300">AI:</span> {{ aiError }}
+            </div>
+            <div v-if="!liveError && !aiError" class="text-emerald-300">No generation errors reported.</div>
           </div>
         </div>
       </div>

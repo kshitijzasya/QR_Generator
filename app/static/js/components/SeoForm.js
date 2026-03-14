@@ -14,11 +14,33 @@ export default {
         <option value="youtube">YouTube</option>
       </select>
 
-      <label for="seo-content-format">Video Format</label>
-      <select id="seo-content-format" class="select" v-model="seoForm.contentFormat">
-        <option value="long">Long video</option>
-        <option value="short">Short video / Shorts</option>
-      </select>
+      <label>Video Format</label>
+      <div class="mode-group">
+        <label class="mode-card">
+          <input type="radio" name="seo-content-format" value="long" v-model="seoForm.contentFormat" />
+          <span class="mode-title">Long video</span>
+          <span class="mode-copy">Standard YouTube upload</span>
+        </label>
+        <label class="mode-card">
+          <input type="radio" name="seo-content-format" value="short" v-model="seoForm.contentFormat" />
+          <span class="mode-title">Shorts</span>
+          <span class="mode-copy">Short-form vertical video</span>
+        </label>
+      </div>
+
+      <label>YouTube Key</label>
+      <div class="mode-group">
+        <label class="mode-card">
+          <input type="radio" name="seo-key-mode" value="backup" v-model="seoForm.keyMode" />
+          <span class="mode-title">Use app backup key</span>
+          <span class="mode-copy">General live YouTube research</span>
+        </label>
+        <label class="mode-card">
+          <input type="radio" name="seo-key-mode" value="own" v-model="seoForm.keyMode" />
+          <span class="mode-title">Use my YouTube key</span>
+          <span class="mode-copy">Better for niche-specific intent</span>
+        </label>
+      </div>
 
       <label for="seo-topic">Topic</label>
       <textarea
@@ -29,12 +51,7 @@ export default {
         required
       ></textarea>
 
-      <label for="seo-use-own-key" class="mode-option">
-        <input id="seo-use-own-key" type="checkbox" v-model="seoForm.useOwnKey" />
-        Use my YouTube API key (otherwise app backup env key is used)
-      </label>
-
-      <template v-if="seoForm.useOwnKey">
+      <template v-if="seoForm.keyMode === 'own'">
         <label for="seo-youtube-key">YouTube API key</label>
         <input
           id="seo-youtube-key"
