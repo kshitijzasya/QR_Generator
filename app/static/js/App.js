@@ -53,6 +53,10 @@ export default {
         window.location.href = "/seo";
         return;
       }
+      if (moduleName === "code") {
+        window.location.href = "/code";
+        return;
+      }
       activeModule.value = moduleName;
     }
 
@@ -98,6 +102,11 @@ export default {
             <span class="tool-kicker">Optimize</span>
             <span class="tool-title">SEO Assistant</span>
             <span class="tool-copy">Generate titles, tags, hashtags, and thumbnail ideas.</span>
+          </button>
+          <button type="button" class="tool-card" @click="openModule('code')">
+            <span class="tool-kicker">Build</span>
+            <span class="tool-title">Code Generator</span>
+            <span class="tool-copy">Start a dedicated code-generation workflow from one prompt.</span>
           </button>
         </section>
       </template>

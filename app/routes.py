@@ -2,6 +2,7 @@ from flask import Blueprint, Response, jsonify, render_template, request
 
 from .qr import make_qr
 from .seo import generate_seo_content
+from .code import generate_code_content
 
 bp = Blueprint("main", __name__)
 
@@ -35,6 +36,11 @@ def index():
 @bp.route("/seo")
 def seo():
     return render_template("seo.html")
+
+
+@bp.route("/code")
+def code():
+    return render_template("code.html")
 
 
 @bp.route("/api/qr", methods=["POST"])
@@ -117,3 +123,26 @@ def seo_generate_api():
         return jsonify({"error": result.get("live_error", "YouTube live fetch failed")}), 502
 
     return jsonify(result)
+
+@bp.route("api/code/generate", method="POST")
+def code_generate_api():
+    payload = request.get_json(silent=True) or {}
+    task = payload.get("task", "")
+    framework = payload.get("framework")
+    language = payload.get("language")
+
+    if not task:
+        return jsonify({"error": "Prompt not provided for context"}), 400
+
+    try:
+        result = generate_code_content(
+            promt=task,
+            framework=framework,
+            language=language
+        )
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    
+    return jsonify(result)
+    
+
