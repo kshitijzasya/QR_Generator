@@ -68,16 +68,25 @@ TITLE_PATTERNS = [
 
 PLATFORM_OUTPUT_MAP: dict[str, dict[str, Any]] = {
     "youtube": {
-        "required_sections": ["titles", "description", "seo_tags", "hashtags", "thumbnail_text", "thumbnail_ideas"],
+        "required_sections": ["titles", "description", "seo_tags", "hashtags", "thumbnail_text", "thumbnail_ideas", "hook", "outline"],
         "title_count": 6,
         "description_count": 1,
         "tag_label": "seo_tags",
+        "default_content_format": "long",
     },
     "instagram": {
-        "required_sections": ["titles", "description", "hashtags"],
+        "required_sections": ["titles", "description", "hashtags", "hook", "cta", "visual_direction", "caption_variants"],
         "title_count": 4,
         "description_count": 1,
         "tag_label": "hashtags",
+        "default_content_format": "reel",
+    },
+    "linkedin": {
+        "required_sections": ["titles", "description", "hashtags", "hook", "cta", "post_variants"],
+        "title_count": 4,
+        "description_count": 1,
+        "tag_label": "hashtags",
+        "default_content_format": "post",
     },
 }
 
@@ -234,6 +243,19 @@ def _dedupe_case_insensitive(items: list[str], limit: int | None = None) -> list
 def _normalize_content_format(content_format: str) -> str:
     normalized = (content_format or "long").strip().lower()
     return "short" if normalized == "short" else "long"
+
+
+def _normalize_platform_content_format(platform: str, content_format: str) -> str:
+    clean_platform = (platform or "youtube").strip().lower()
+    normalized = (content_format or "").strip().lower()
+    if clean_platform == "youtube":
+        return _normalize_content_format(content_format)
+
+    if normalized:
+        return normalized
+
+    requirements = PLATFORM_OUTPUT_MAP.get(clean_platform, PLATFORM_OUTPUT_MAP["youtube"])
+    return requirements.get("default_content_format", "post")
 
 
 def _youtube_api_key() -> str:
@@ -494,6 +516,13 @@ def _build_local_response(topic: str, rules: SocialRules, content_format: str, o
 
     thumbnail_ideas = _render_templates(rules.thumbnail_idea_templates, values)
     thumbnail_text = _render_templates(rules.thumbnail_text_templates, values)
+    platform_extras = _generate_platform_extras(
+        topic=topic,
+        platform=rules.platform,
+        content_format=content_format,
+        phrases=keywords[:6],
+        thumbnail_ideas=thumbnail_ideas,
+    )
 
     response = {
         "platform": rules.platform,
@@ -512,6 +541,7 @@ def _build_local_response(topic: str, rules: SocialRules, content_format: str, o
             "keyword_buckets": {"primary": keywords[:5], "supporting": keywords[5:10], "broad": []},
         },
     }
+    response.update(platform_extras)
     return _attach_quality_scores(response, output_rules)
 
 
@@ -638,6 +668,100 @@ def _generate_thumbnail_ideas(topic: str, competitors: list[CompetitorVideo], ru
     return _dedupe_case_insensitive(ideas, limit=6)
 
 
+def _build_hook_line(topic: str, primary_phrase: str, platform: str) -> str:
+    starter = primary_phrase or topic
+    if platform == "linkedin":
+        return f"Most people misunderstand {starter}. Here is the practical angle that actually matters."
+    if platform == "instagram":
+        return f"Stop scrolling if you want a sharper take on {starter}."
+    return f"Can {starter.lower()} change your results? Watch this before you publish."
+
+
+def _build_outline_points(topic: str, thumbnail_ideas: list[str], platform: str) -> list[str]:
+    if platform == "linkedin":
+        points = [
+            f"Lead with the real problem behind {topic}",
+            "Share a clear opinion or lesson",
+            "Back it with one practical example",
+            "Close with a discussion-driving CTA",
+        ]
+    elif platform == "instagram":
+        points = [
+            f"Hook viewers with the strongest angle on {topic}",
+            "Deliver one fast insight or payoff",
+            "Keep the visual beat tight and easy to scan",
+            "End with a comment or save CTA",
+        ]
+    else:
+        points = [
+            "Hook and context in first 15 seconds",
+            "Key explanation with proof/examples",
+            "Strong CTA and keyword recap at the end",
+        ]
+
+    points.extend(thumbnail_ideas[:2])
+    return _dedupe_case_insensitive(points, limit=5)
+
+
+def _generate_platform_extras(
+    topic: str,
+    platform: str,
+    content_format: str,
+    phrases: list[str],
+    thumbnail_ideas: list[str] | None = None,
+) -> dict[str, Any]:
+    primary = phrases[0] if phrases else topic
+    supporting = phrases[1] if len(phrases) > 1 else topic
+    thumbnail_ideas = thumbnail_ideas or []
+    hook = _build_hook_line(topic, primary, platform)
+    outline = _build_outline_points(topic, thumbnail_ideas, platform)
+
+    if platform == "instagram":
+        caption_variants = _dedupe_case_insensitive(
+            [
+                f"{hook} Save this for later if you want a better angle on {supporting}.",
+                f"{primary} is getting attention for a reason. Here is the sharpest takeaway you can use in your next {content_format}.",
+                f"If your audience cares about {topic}, this is the cleanest story arc to keep in the caption.",
+            ],
+            limit=3,
+        )
+        return {
+            "hook": hook,
+            "outline": outline,
+            "cta": "Comment your take and save this for your next post.",
+            "visual_direction": _dedupe_case_insensitive(
+                [
+                    f"High-contrast first frame focused on {primary}",
+                    f"On-screen text anchored around {supporting}",
+                    f"Fast-cut visuals that support a {content_format} format",
+                ],
+                limit=3,
+            ),
+            "caption_variants": caption_variants,
+        }
+
+    if platform == "linkedin":
+        post_variants = _dedupe_case_insensitive(
+            [
+                f"{hook}\n\nHere is the part most people miss about {topic}: {supporting}.",
+                f"{primary} is usually framed the wrong way.\n\nA better approach is to focus on {supporting} and explain the business impact clearly.",
+                f"If you are talking about {topic}, lead with the tension, then explain the practical lesson and end with a point of view.",
+            ],
+            limit=3,
+        )
+        return {
+            "hook": hook,
+            "outline": outline,
+            "cta": "What is your take on this approach?",
+            "post_variants": post_variants,
+        }
+
+    return {
+        "hook": hook,
+        "outline": outline,
+    }
+
+
 def _platform_requirements(platform: str) -> dict[str, Any]:
     return PLATFORM_OUTPUT_MAP.get(platform, PLATFORM_OUTPUT_MAP["youtube"])
 
@@ -657,8 +781,8 @@ def _build_ai_prompt(
         )
 
     system_prompt = (
-        "You are an SEO strategist. Return only valid JSON with no markdown. "
-        "Use the research context and platform requirements. Do not fabricate unrelated trends."
+        "You are an SEO strategist and social media expert. Return only valid JSON with no markdown. "
+        "Use the research context and platform requirements. Do not fabricate unrelated trends and give me response according to the context to have most viewers interest"
     )
     user_prompt = (
         f"Platform: {platform}\n"
@@ -674,7 +798,13 @@ def _build_ai_prompt(
         '  "hashtags": [string],\n'
         '  "seo_tags": [string],\n'
         '  "thumbnail_text": [string],\n'
-        '  "thumbnail_ideas": [string]\n'
+        '  "thumbnail_ideas": [string],\n'
+        '  "hook": string,\n'
+        '  "outline": [string],\n'
+        '  "cta": string,\n'
+        '  "visual_direction": [string],\n'
+        '  "caption_variants": [string],\n'
+        '  "post_variants": [string]\n'
         "}\n"
         "Constraints:\n"
         "- make outputs copy-ready\n"
@@ -710,6 +840,10 @@ def _normalize_ai_result(raw_payload: dict[str, Any], topic: str, platform: str,
     seo_tags = _dedupe_case_insensitive([str(item).strip() for item in raw_payload.get("seo_tags", [])], limit=20)
     thumbnail_text = _dedupe_case_insensitive([str(item).strip() for item in raw_payload.get("thumbnail_text", [])], limit=6)
     thumbnail_ideas = _dedupe_case_insensitive([str(item).strip() for item in raw_payload.get("thumbnail_ideas", [])], limit=6)
+    outline = _dedupe_case_insensitive([str(item).strip() for item in raw_payload.get("outline", [])], limit=6)
+    visual_direction = _dedupe_case_insensitive([str(item).strip() for item in raw_payload.get("visual_direction", [])], limit=4)
+    caption_variants = _dedupe_case_insensitive([str(item).strip() for item in raw_payload.get("caption_variants", [])], limit=4)
+    post_variants = _dedupe_case_insensitive([str(item).strip() for item in raw_payload.get("post_variants", [])], limit=4)
 
     return {
         "platform": platform,
@@ -721,6 +855,12 @@ def _normalize_ai_result(raw_payload: dict[str, Any], topic: str, platform: str,
         "seo_tags": seo_tags,
         "thumbnail_text": thumbnail_text,
         "thumbnail_ideas": thumbnail_ideas,
+        "hook": str(raw_payload.get("hook", "")).strip(),
+        "outline": outline,
+        "cta": str(raw_payload.get("cta", "")).strip(),
+        "visual_direction": visual_direction,
+        "caption_variants": caption_variants,
+        "post_variants": post_variants,
         "source": "ai-model",
         "research": {
             "competitors": [],
@@ -978,6 +1118,13 @@ def _build_live_response(
     seo_tags = _generate_seo_tags(topic, buckets["primary"] + buckets["supporting"] + buckets["broad"], ranked, output_rules)
     thumbnail_text = _generate_thumbnail_text(buckets["primary"] + buckets["supporting"], rules)
     thumbnail_ideas = _generate_thumbnail_ideas(topic, ranked, rules)
+    platform_extras = _generate_platform_extras(
+        topic=topic,
+        platform=rules.platform,
+        content_format=content_format,
+        phrases=buckets["primary"] + buckets["supporting"] + buckets["broad"],
+        thumbnail_ideas=thumbnail_ideas,
+    )
 
     deterministic_result = {
         "platform": rules.platform,
@@ -1009,6 +1156,7 @@ def _build_live_response(
             ],
         },
     }
+    deterministic_result.update(platform_extras)
     ai_error = ""
     try:
         ai_candidate = _generate_ai_candidate(
@@ -1044,7 +1192,7 @@ def generate_seo_content(
         raise ValueError("Topic is required")
 
     clean_platform = (platform or "youtube").strip().lower()
-    normalized_format = _normalize_content_format(content_format)
+    normalized_format = _normalize_platform_content_format(clean_platform, content_format)
     rules = _load_rules(clean_platform)
     output_rules = _load_output_rules()
 

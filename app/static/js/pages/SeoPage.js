@@ -28,6 +28,31 @@ function uniqueList(items) {
   return out;
 }
 
+function formatSourceLabel(value) {
+  return String(value || "")
+    .split(/[^a-zA-Z0-9]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+const PLATFORM_FORMATS = {
+  youtube: [
+    { value: "long", label: "Long Video", copy: "Standard YouTube upload" },
+    { value: "short", label: "Shorts", copy: "Short-form vertical video" },
+  ],
+  instagram: [
+    { value: "reel", label: "Reel", copy: "Short-form discovery content" },
+    { value: "post", label: "Post", copy: "Static post or single asset" },
+    { value: "carousel", label: "Carousel", copy: "Swipeable educational post" },
+  ],
+  linkedin: [
+    { value: "post", label: "Post", copy: "Standard professional post" },
+    { value: "carousel", label: "Carousel", copy: "Document or slide format" },
+    { value: "article", label: "Article", copy: "Long-form editorial content" },
+  ],
+};
+
 export default {
   name: "SeoPage",
   setup() {
@@ -50,6 +75,13 @@ export default {
     const selectedSource = computed(() => result.value?.selection_meta?.selected_source || result.value?.source || "unknown");
     const candidateSources = computed(() => result.value?.candidate_sources || []);
     const scoresBySource = computed(() => result.value?.selection_meta?.scores_by_source || {});
+    const scoreEntries = computed(() =>
+      Object.entries(scoresBySource.value).map(([sourceName, score]) => ({
+        sourceName,
+        label: formatSourceLabel(sourceName),
+        score,
+      }))
+    );
     const aiError = computed(() => result.value?.selection_meta?.ai_error || "");
     const liveError = computed(() => result.value?.live_error || "");
     const overallScore = computed(() => qualityScores.value?.overall_score || 0);
@@ -60,6 +92,8 @@ export default {
     const thumbnailTextScore = computed(() => qualityScores.value?.thumbnail_text_score || 0);
     const titleReadability = computed(() => qualityScores.value?.title_readability || {});
     const descriptionReadability = computed(() => qualityScores.value?.description_readability || {});
+    const formatOptions = computed(() => PLATFORM_FORMATS[form.platform] || PLATFORM_FORMATS.youtube);
+    const isYouTube = computed(() => form.platform === "youtube");
 
     const relatedKeywords = computed(() => {
       if (!result.value) {
@@ -158,7 +192,7 @@ export default {
         return;
       }
 
-      const useOwnLive = form.keyMode === "own";
+      const useOwnLive = isYouTube.value && form.keyMode === "own";
       if (useOwnLive && !form.youtubeApiKey.trim()) {
         error.value = "Enter your YouTube API key for personal-key mode.";
         return;
@@ -213,6 +247,15 @@ export default {
       onSubmit();
     }
 
+    function onPlatformChange() {
+      const nextOptions = PLATFORM_FORMATS[form.platform] || PLATFORM_FORMATS.youtube;
+      form.contentFormat = nextOptions[0]?.value || "long";
+      if (form.platform !== "youtube") {
+        form.keyMode = "backup";
+        form.youtubeApiKey = "";
+      }
+    }
+
     function scoreBadgeClass(score) {
       if (score >= 85) {
         return "border-emerald-500/40 bg-emerald-500/10 text-emerald-300";
@@ -231,11 +274,15 @@ export default {
       descriptionReadability,
       descriptionScore,
       error,
+      formatOptions,
+      formatSourceLabel,
       form,
       hookLine,
+      isYouTube,
       loading,
       liveError,
       onRegenerate,
+      onPlatformChange,
       onSubmit,
       outlinePoints,
       outlineText,
@@ -244,6 +291,7 @@ export default {
       relatedKeywordsText,
       result,
       scoreBadgeClass,
+      scoreEntries,
       scoresBySource,
       selectedSource,
       hashtagItems,
@@ -268,26 +316,46 @@ export default {
       <p class="mt-2 text-sm text-slate-400 md:text-base">Generate title, description, tags, hook, and outline for your video idea.</p>
 
       <form class="mt-4 grid gap-3 rounded-2xl border border-slate-700 bg-gradient-to-br from-slate-900 to-slate-800 p-4 md:grid-cols-[1fr_220px]" @submit.prevent="onSubmit">
+        <div class="md:col-span-2 rounded-2xl border border-slate-700 bg-slate-900/80 p-3">
+          <div class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Platform</div>
+          <div class="grid gap-2 md:grid-cols-3">
+            <label class="cursor-pointer rounded-xl border px-3 py-3 text-sm transition"
+              :class="form.platform === 'youtube' ? 'border-blue-500 bg-blue-500/10 text-white' : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-600'">
+              <input class="sr-only" type="radio" name="platform" value="youtube" v-model="form.platform" @change="onPlatformChange" />
+              <span class="block font-medium">YouTube</span>
+              <span class="mt-1 block text-xs text-slate-400">Video SEO and discovery</span>
+            </label>
+            <label class="cursor-pointer rounded-xl border px-3 py-3 text-sm transition"
+              :class="form.platform === 'instagram' ? 'border-blue-500 bg-blue-500/10 text-white' : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-600'">
+              <input class="sr-only" type="radio" name="platform" value="instagram" v-model="form.platform" @change="onPlatformChange" />
+              <span class="block font-medium">Instagram</span>
+              <span class="mt-1 block text-xs text-slate-400">Hooks, captions, and reels</span>
+            </label>
+            <label class="cursor-pointer rounded-xl border px-3 py-3 text-sm transition"
+              :class="form.platform === 'linkedin' ? 'border-blue-500 bg-blue-500/10 text-white' : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-600'">
+              <input class="sr-only" type="radio" name="platform" value="linkedin" v-model="form.platform" @change="onPlatformChange" />
+              <span class="block font-medium">LinkedIn</span>
+              <span class="mt-1 block text-xs text-slate-400">Professional hooks and posts</span>
+            </label>
+          </div>
+        </div>
+
         <div class="md:col-span-2 grid gap-3 lg:grid-cols-2">
           <div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-3">
-            <div class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Video Format</div>
-            <div class="grid grid-cols-2 gap-2">
+            <div class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Format</div>
+            <div class="grid gap-2" :class="formatOptions.length === 2 ? 'grid-cols-2' : 'md:grid-cols-3'">
               <label class="cursor-pointer rounded-xl border px-3 py-3 text-sm transition"
-                :class="form.contentFormat === 'long' ? 'border-blue-500 bg-blue-500/10 text-white' : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-600'">
-                <input class="sr-only" type="radio" name="content-format" value="long" v-model="form.contentFormat" />
-                <span class="block font-medium">Long Video</span>
-                <span class="mt-1 block text-xs text-slate-400">Standard YouTube upload</span>
-              </label>
-              <label class="cursor-pointer rounded-xl border px-3 py-3 text-sm transition"
-                :class="form.contentFormat === 'short' ? 'border-blue-500 bg-blue-500/10 text-white' : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-600'">
-                <input class="sr-only" type="radio" name="content-format" value="short" v-model="form.contentFormat" />
-                <span class="block font-medium">Shorts</span>
-                <span class="mt-1 block text-xs text-slate-400">Short-form vertical video</span>
+                v-for="option in formatOptions"
+                :key="option.value"
+                :class="form.contentFormat === option.value ? 'border-blue-500 bg-blue-500/10 text-white' : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-600'">
+                <input class="sr-only" type="radio" name="content-format" :value="option.value" v-model="form.contentFormat" />
+                <span class="block font-medium">{{ option.label }}</span>
+                <span class="mt-1 block text-xs text-slate-400">{{ option.copy }}</span>
               </label>
             </div>
           </div>
 
-          <div class="rounded-2xl border border-slate-700 bg-slate-900/80 p-3">
+          <div v-if="isYouTube" class="rounded-2xl border border-slate-700 bg-slate-900/80 p-3">
             <div class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">YouTube Key</div>
             <div class="grid gap-2">
               <label class="cursor-pointer rounded-xl border px-3 py-3 text-sm transition"
@@ -307,7 +375,7 @@ export default {
         </div>
 
         <input
-          v-if="form.keyMode === 'own'"
+          v-if="isYouTube && form.keyMode === 'own'"
           class="md:col-span-2 h-12 w-full rounded-xl border border-slate-700 bg-slate-800 px-3 text-slate-100 placeholder:text-slate-500 focus:border-blue-500 focus:outline-none"
           v-model="form.youtubeApiKey"
           type="password"
@@ -340,8 +408,8 @@ export default {
             {{ result.validation?.passed ? 'Passed validation' : 'Needs improvement' }}
           </div>
           <div class="mt-4 border-t border-slate-800 pt-4 text-xs text-slate-400">
-            <div>Source: <span class="font-medium text-slate-200">{{ selectedSource }}</span></div>
-            <div v-if="candidateSources.length" class="mt-1">Candidates: <span class="text-slate-300">{{ candidateSources.join(', ') }}</span></div>
+            <div>Source: <span class="font-medium text-slate-200">{{ formatSourceLabel(selectedSource) }}</span></div>
+            <div v-if="candidateSources.length" class="mt-1">Candidates: <span class="text-slate-300">{{ candidateSources.map(formatSourceLabel).join(', ') }}</span></div>
           </div>
         </div>
 
@@ -391,7 +459,7 @@ export default {
             <div class="mb-2 text-xs uppercase tracking-[0.18em] text-slate-500">Candidate Scores</div>
             <div v-if="Object.keys(scoresBySource).length" class="space-y-1">
               <div v-for="(score, sourceName) in scoresBySource" :key="sourceName" class="flex items-center justify-between gap-3">
-                <span>{{ sourceName }}</span>
+                <span>{{ formatSourceLabel(sourceName) }}</span>
                 <span class="font-semibold text-white">{{ score }}</span>
               </div>
             </div>

@@ -96,8 +96,9 @@ def seo_generate_api():
     allow_fallback = payload.get("allow_fallback", False)
     use_own_key = bool(payload.get("use_own_key", False))
     youtube_api_key = (payload.get("youtube_api_key", "") or "").strip()
+    is_youtube = str(platform).strip().lower() == "youtube"
 
-    if use_own_key and not youtube_api_key and not bool(allow_fallback):
+    if is_youtube and use_own_key and not youtube_api_key and not bool(allow_fallback):
         return jsonify({"error": "youtube_api_key is required when use_own_key is true unless allow_fallback is enabled"}), 400
 
     try:
@@ -105,14 +106,14 @@ def seo_generate_api():
             topic=topic,
             platform=platform,
             prefer_live=bool(live),
-            youtube_api_key=youtube_api_key if use_own_key else "",
-            use_env_fallback=(not use_own_key) or (bool(allow_fallback) and not youtube_api_key),
+            youtube_api_key=youtube_api_key if is_youtube and use_own_key else "",
+            use_env_fallback=(not is_youtube) or (not use_own_key) or (bool(allow_fallback) and not youtube_api_key),
             content_format=content_format,
         )
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
 
-    if bool(live) and not bool(allow_fallback) and result.get("source") != "youtube-live":
+    if is_youtube and bool(live) and not bool(allow_fallback) and result.get("source") != "youtube-live":
         return jsonify({"error": result.get("live_error", "YouTube live fetch failed")}), 502
 
     return jsonify(result)
