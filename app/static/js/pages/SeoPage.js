@@ -311,6 +311,9 @@ export default {
   },
   template: `
     <section class="mb-6">
+      <a href="/" class="mb-4 inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-slate-600 hover:text-white">
+        Back to Tools
+      </a>
       <span class="mb-3 inline-flex items-center rounded-full border border-slate-700/80 bg-slate-900 px-3 py-1 text-xs font-medium text-slate-200">AI YouTube Content Studio</span>
       <h1 class="text-3xl font-bold tracking-tight text-slate-50 md:text-4xl">Get better SEO results in one workspace</h1>
       <p class="mt-2 text-sm text-slate-400 md:text-base">Generate title, description, tags, hook, and outline for your video idea.</p>

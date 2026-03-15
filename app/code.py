@@ -1,4 +1,3 @@
-import json
 import os
 
 try:
@@ -24,16 +23,33 @@ def generate_code_content(prompt: str, framework: str, language: str):
     client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=api_key)
     try:
         completion = client.chat.completions.create(
-            model=_nvidia_model_name(),
+            model=model_name,
             messages=[
                 {"role": "user", "content": user_prompt},
             ],
             temperature=1,
             top_p=0.95,
-            max_tokens=16384,
+            max_tokens=513,
             stream=True,
             extra_body={"chat_template_kwargs":{"enable_thinking":True},"reasoning_budget":16384}
-        )  
-        print('completion', completion)     
+        )
     except Exception as exc:
         raise RuntimeError(f"AI model request failed: {exc}") from exc
+
+    chunks: list[str] = []
+    for chunk in completion:
+        delta = chunk.choices[0].delta if chunk.choices else None
+        if delta and getattr(delta, "content", None):
+            chunks.append(delta.content)
+
+    content = "".join(chunks).strip()
+    if not content:
+        raise RuntimeError("AI model returned empty content")
+    
+    return {
+        "prompt": prompt,
+        "framework": framework,
+        "language": language,
+        "content": content,
+        "source": "ai-model",
+    }

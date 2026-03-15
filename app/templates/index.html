@@ -23,8 +23,9 @@
         font-family: "Avenir Next", "Segoe UI", sans-serif;
         color: var(--text);
         background: linear-gradient(165deg, #1297ef 0%, #1297ef 58%, #f2e900 58%, #f2e900 100%);
-        display: grid;
-        place-items: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
         padding: 20px;
       }
 
@@ -362,6 +363,64 @@
         margin-bottom: 6px;
       }
 
+      .site-footer {
+        width: min(100%, 860px);
+        margin-top: 16px;
+        border: 2px solid #161922;
+        border-radius: 14px;
+        background: rgba(245, 246, 248, 0.94);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+      }
+
+      .site-footer__inner {
+        display: grid;
+        grid-template-columns: 1.3fr 1fr 1fr;
+        gap: 18px;
+        padding: 20px 24px;
+      }
+
+      .site-footer__eyebrow,
+      .site-footer__heading {
+        display: block;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #5d6b82;
+        margin-bottom: 8px;
+      }
+
+      .site-footer__copy {
+        margin: 0;
+        color: #334155;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .site-footer__links {
+        display: grid;
+        gap: 8px;
+      }
+
+      .site-footer__link {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        color: #1f2937;
+        text-decoration: none;
+        font-size: 14px;
+      }
+
+      .site-footer__link:hover {
+        color: #005ce6;
+      }
+
+      .site-footer__link svg {
+        width: 16px;
+        height: 16px;
+        fill: currentColor;
+      }
+
       @media (max-width: 760px) {
         .card {
           padding: 22px 18px;
@@ -378,11 +437,16 @@
         .tool-grid {
           grid-template-columns: 1fr;
         }
+
+        .site-footer__inner {
+          grid-template-columns: 1fr;
+        }
       }
     </style>
   </head>
   <body>
     <main id="app" class="card"></main>
+    {% include "_site_footer.html" %}
     <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
   </body>
 </html>

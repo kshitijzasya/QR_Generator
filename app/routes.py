@@ -124,7 +124,7 @@ def seo_generate_api():
 
     return jsonify(result)
 
-@bp.route("api/code/generate", method="POST")
+@bp.route("/api/code/generate", methods=["POST"])
 def code_generate_api():
     payload = request.get_json(silent=True) or {}
     task = payload.get("task", "")
@@ -136,13 +136,17 @@ def code_generate_api():
 
     try:
         result = generate_code_content(
-            promt=task,
+            prompt=task,
             framework=framework,
             language=language
         )
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
+    except RuntimeError as exc:
+        return jsonify({"error": str(exc)}), 502
+
+    if result is None:
+        return jsonify({"error": "Code generation is not configured"}), 503
     
     return jsonify(result)
     
-
