@@ -18,7 +18,7 @@ def generate_code_content(prompt: str, framework: str, language: str):
     if not api_key or model_name is None:
         return None
     
-    user_prompt=f"{prompt} and where language is {language} and framework for the language is {framework}"
+    user_prompt=f"{prompt} and where language is {language} and framework for the language is {framework}. Give me short quick and relative answer to this."
 
     client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=api_key)
     try:
