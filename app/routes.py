@@ -130,6 +130,8 @@ def code_generate_api():
     task = payload.get("task", "")
     framework = payload.get("framework")
     language = payload.get("language")
+    conversation_id = payload.get("conversation_id", "")
+    fresh_conversation = bool(payload.get("fresh_conversation", False))
 
     if not task:
         return jsonify({"error": "Prompt not provided for context"}), 400
@@ -138,7 +140,9 @@ def code_generate_api():
         result = generate_code_content(
             prompt=task,
             framework=framework,
-            language=language
+            language=language,
+            conversation_id=conversation_id,
+            fresh_conversation=fresh_conversation,
         )
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400

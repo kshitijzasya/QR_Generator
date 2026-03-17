@@ -606,6 +606,90 @@ def _generate_titles(
     return scored[: rules.max_titles]
 
 
+def _clean_competitor_title(title: str) -> str:
+    cleaned = re.sub(r"#\w+", "", title or "").strip()
+    cleaned = re.sub(r"\s+", " ", cleaned)
+    return cleaned
+
+
+def _title_ctr_bonus(title: str, topic_keywords: list[str]) -> float:
+    lowered = (title or "").lower()
+    specificity_bonus = 0.0
+    if any(token in lowered for token in ["how", "why", "what", "best", "vs", "mistakes", "explained"]):
+        specificity_bonus += 0.18
+    if any(char.isdigit() for char in title):
+        specificity_bonus += 0.08
+    if any(keyword in lowered[: max(20, len(lowered) // 2)] for keyword in topic_keywords[:2]):
+        specificity_bonus += 0.12
+    if title.count(":") > 1 or title.count("|") > 1:
+        specificity_bonus -= 0.08
+    if sum(lowered.count(keyword) for keyword in set(topic_keywords)) > max(3, len(topic_keywords)):
+        specificity_bonus -= 0.15
+    if len(title.split()) > 12:
+        specificity_bonus -= 0.08
+    return max(-0.2, min(0.35, specificity_bonus))
+
+
+def _youtube_title_score(title: str, topic: str, output_rules: dict[str, Any]) -> int:
+    topic_keywords = _topic_keywords(topic)
+    base = _title_quality_score(title, topic_keywords, output_rules)
+    ctr = _title_ctr_bonus(title, topic_keywords)
+    return round(min(1.0, max(0.0, base + ctr)) * 100)
+
+
+def _youtube_title_candidates(
+    topic: str,
+    content_format: str,
+    phrases: list[str],
+    competitors: list[CompetitorVideo],
+    rules: SocialRules,
+    output_rules: dict[str, Any],
+) -> list[str]:
+    audience = "Shorts" if content_format == "short" else "Creators"
+    primary = phrases[0] if phrases else topic
+    secondary = phrases[1] if len(phrases) > 1 else (phrases[0] if phrases else "results")
+    tertiary = phrases[2] if len(phrases) > 2 else secondary
+    year = str(datetime.utcnow().year)
+
+    candidates = [
+        f"{primary}: What Actually Matters in {year}",
+        f"Why {primary} Matters Right Now",
+        f"{primary} Explained for {audience}",
+        f"{primary} vs {secondary}: What Wins?",
+        f"{primary}: Biggest Mistakes to Avoid",
+        f"How {primary} Really Works",
+        f"{primary} Strategy That Works in {year}",
+        f"What Changed in {primary} ({year})",
+        f"{primary} and {secondary}: What You Need to Know",
+        f"{primary}: 3 Things Most People Miss",
+        f"{primary} Explained in Under 10 Minutes" if content_format != "short" else f"{primary} Explained for Shorts",
+        f"{primary} vs {tertiary}: The Real Difference",
+    ]
+    candidates.extend(_clean_competitor_title(video.title) for video in competitors[:8])
+    candidates.extend(
+        _render_templates(
+            rules.title_templates,
+            _format_values(topic, primary, secondary),
+        )
+    )
+    candidates.extend(
+        [
+            f"{topic}: Full Breakdown",
+            f"{topic}: What Actually Works",
+            f"{topic} for Beginners",
+            f"{topic}: Best Approach in {year}",
+        ]
+    )
+
+    deduped = _dedupe_case_insensitive(candidates)
+    ranked = sorted(
+        deduped,
+        key=lambda title: _youtube_title_score(title, topic, output_rules),
+        reverse=True,
+    )
+    return ranked[: max(rules.max_titles, 12)]
+
+
 def _generate_description(topic: str, phrases: list[str], competitors: list[CompetitorVideo]) -> str:
     primary = phrases[0] if phrases else topic
     secondary = phrases[1] if len(phrases) > 1 else topic
@@ -620,6 +704,41 @@ def _generate_description(topic: str, phrases: list[str], competitors: list[Comp
         f"and gives viewers a clear reason to click. Watch through for the key context, the practical takeaway, "
         f"and the next step you should apply today."
     )
+
+
+def _youtube_description_candidates(topic: str, phrases: list[str], competitors: list[CompetitorVideo]) -> list[str]:
+    primary = phrases[0] if phrases else topic
+    secondary = phrases[1] if len(phrases) > 1 else topic
+    tertiary = phrases[2] if len(phrases) > 2 else secondary
+    channels = _dedupe_case_insensitive([video.channel for video in competitors], limit=3)
+    competitor_titles = _dedupe_case_insensitive([_clean_competitor_title(video.title) for video in competitors], limit=3)
+    channel_line = (
+        f"After reviewing top performers from {', '.join(channels)},"
+        if channels
+        else "After reviewing top-performing videos,"
+    )
+
+    candidates = [
+        _generate_description(topic, phrases, competitors),
+        (
+            f"{primary} is getting strong attention on YouTube right now. {channel_line} this video focuses on {secondary}, "
+            f"breaks down what matters, and gives viewers a clear reason to keep watching until the end."
+        ),
+        (
+            f"If you want to understand {topic}, this video gives you the fastest path. We cover {primary}, explain {secondary}, "
+            f"and show what most creators miss when they talk about {tertiary}."
+        ),
+        (
+            f"{channel_line} this topic keeps winning because people want clarity, speed, and a clear angle. "
+            f"In this video, you will learn {primary}, why {secondary} matters, and what to do next."
+        ),
+    ]
+    if competitor_titles:
+        candidates.append(
+            f"{primary} is already pulling attention through angles like {competitor_titles[0]}. "
+            f"This version gives a sharper explanation of {secondary} and a stronger takeaway for viewers."
+        )
+    return _dedupe_case_insensitive(candidates, limit=5)
 
 
 def _generate_hashtags(topic: str, phrases: list[str], rules: SocialRules) -> list[str]:
@@ -639,6 +758,20 @@ def _generate_hashtags(topic: str, phrases: list[str], rules: SocialRules) -> li
     return output
 
 
+def _youtube_hashtag_candidates(topic: str, phrases: list[str], rules: SocialRules, competitors: list[CompetitorVideo]) -> list[list[str]]:
+    base_phrases = _dedupe_case_insensitive(phrases + [topic], limit=12)
+    competitor_tags = _dedupe_case_insensitive(
+        [_to_hashtag(tag) for video in competitors[:4] for tag in video.tags[:5]],
+        limit=12,
+    )
+    sets = [
+        _generate_hashtags(topic, base_phrases, rules),
+        _dedupe_case_insensitive(rules.hashtags_base + [_to_hashtag(topic)] + [_to_hashtag(item) for item in base_phrases[:8]], limit=rules.max_hashtags),
+        _dedupe_case_insensitive(rules.hashtags_base + competitor_tags[:6] + [_to_hashtag(item) for item in base_phrases[:4]], limit=rules.max_hashtags),
+    ]
+    return [item for item in sets if item]
+
+
 def _generate_seo_tags(topic: str, phrases: list[str], competitors: list[CompetitorVideo], output_rules: dict[str, Any]) -> list[str]:
     tag_rules = output_rules.get("seo_tag_rules", {})
     max_count = int(tag_rules.get("max_count", 20))
@@ -646,6 +779,26 @@ def _generate_seo_tags(topic: str, phrases: list[str], competitors: list[Competi
     candidates.extend(phrases)
     candidates.extend(tag for video in competitors[:3] for tag in video.tags[:6])
     return _dedupe_case_insensitive(candidates, limit=max_count)
+
+
+def _youtube_seo_tag_candidates(topic: str, phrases: list[str], competitors: list[CompetitorVideo], output_rules: dict[str, Any]) -> list[list[str]]:
+    phrase_pool = _dedupe_case_insensitive(phrases + [topic], limit=18)
+    exact_variants = [
+        topic,
+        f"{topic} explained",
+        f"{topic} full breakdown",
+        f"{topic} tutorial",
+        f"how {topic} works",
+        f"{topic} analysis",
+        f"{topic} update",
+    ]
+    competitor_tags = _dedupe_case_insensitive([tag for video in competitors[:5] for tag in video.tags[:6]], limit=20)
+    sets = [
+        _generate_seo_tags(topic, phrase_pool, competitors, output_rules),
+        _dedupe_case_insensitive(exact_variants + phrase_pool + competitor_tags[:8], limit=20),
+        _dedupe_case_insensitive(exact_variants[:4] + competitor_tags + phrase_pool[:8], limit=20),
+    ]
+    return [item for item in sets if item]
 
 
 def _generate_thumbnail_text(phrases: list[str], rules: SocialRules) -> list[str]:
@@ -656,6 +809,27 @@ def _generate_thumbnail_text(phrases: list[str], rules: SocialRules) -> list[str
             generated.append(phrase.upper())
     generated.extend(rules.thumbnail_text_templates)
     return _dedupe_case_insensitive(generated, limit=6)
+
+
+def _youtube_thumbnail_text_candidates(phrases: list[str], competitors: list[CompetitorVideo], rules: SocialRules) -> list[list[str]]:
+    phrase_candidates = []
+    for phrase in phrases[:6]:
+        words = phrase.split()
+        if 1 <= len(words) <= 4:
+            phrase_candidates.append(phrase.upper())
+    competitor_candidates = []
+    for video in competitors[:4]:
+        cleaned = _clean_competitor_title(video.title)
+        short = " ".join(cleaned.split()[:4]).upper()
+        if short:
+            competitor_candidates.append(short)
+
+    sets = [
+        _generate_thumbnail_text(phrases, rules),
+        _dedupe_case_insensitive(phrase_candidates + rules.thumbnail_text_templates, limit=6),
+        _dedupe_case_insensitive(competitor_candidates + phrase_candidates[:3] + rules.thumbnail_text_templates[:3], limit=6),
+    ]
+    return [item for item in sets if item]
 
 
 def _generate_thumbnail_ideas(topic: str, competitors: list[CompetitorVideo], rules: SocialRules) -> list[str]:
@@ -979,8 +1153,111 @@ def _quality_score_thumbnail_text(items: list[str], topic_keywords: list[str]) -
     return round(min(1.0, (_safe_ratio(valid, len(items)) * 0.6) + (_safe_ratio(relevant, len(items)) * 0.4)) * 100)
 
 
+def _best_scored_description(descriptions: list[str], topic: str, output_rules: dict[str, Any]) -> str:
+    topic_keywords = _topic_keywords(topic)
+    scored = sorted(
+        _dedupe_case_insensitive(descriptions),
+        key=lambda item: _quality_score_description(item, topic_keywords, output_rules),
+        reverse=True,
+    )
+    return scored[0] if scored else ""
+
+
+def _best_scored_tag_set(tag_sets: list[list[str]], topic: str, min_count: int, max_count: int) -> list[str]:
+    topic_keywords = _topic_keywords(topic)
+    scored = sorted(
+        [tags for tags in tag_sets if tags],
+        key=lambda tags: _quality_score_tag_group(tags, topic_keywords, min_count, max_count),
+        reverse=True,
+    )
+    return scored[0] if scored else []
+
+
+def _best_scored_thumbnail_text_set(thumbnail_sets: list[list[str]], topic: str) -> list[str]:
+    topic_keywords = _topic_keywords(topic)
+    scored = sorted(
+        [items for items in thumbnail_sets if items],
+        key=lambda items: _quality_score_thumbnail_text(items, topic_keywords),
+        reverse=True,
+    )
+    return scored[0] if scored else []
+
+
+def _merge_youtube_candidates(
+    base_result: dict[str, Any],
+    ai_candidate: dict[str, Any] | None,
+    topic: str,
+    output_rules: dict[str, Any],
+) -> dict[str, Any]:
+    topic_keywords = _topic_keywords(topic)
+    hashtag_rules = output_rules.get("hashtag_rules", {})
+    seo_tag_rules = output_rules.get("seo_tag_rules", {})
+
+    title_pool = list(base_result.get("titles", []))
+    description_pool = [base_result.get("description", "")]
+    hashtag_sets = [base_result.get("hashtags", [])]
+    seo_tag_sets = [base_result.get("seo_tags", [])]
+    thumbnail_sets = [base_result.get("thumbnail_text", [])]
+
+    if ai_candidate:
+        title_pool.extend(ai_candidate.get("titles", []))
+        description_pool.append(ai_candidate.get("description", ""))
+        hashtag_sets.append(ai_candidate.get("hashtags", []))
+        seo_tag_sets.append(ai_candidate.get("seo_tags", []))
+        thumbnail_sets.append(ai_candidate.get("thumbnail_text", []))
+
+    title_pool = _dedupe_case_insensitive(title_pool)
+    ranked_titles = sorted(
+        title_pool,
+        key=lambda item: _youtube_title_score(item, topic, output_rules),
+        reverse=True,
+    )
+
+    merged = dict(base_result)
+    merged["titles"] = ranked_titles[: max(len(base_result.get("titles", [])), 8)]
+    merged["description"] = _best_scored_description(description_pool, topic, output_rules)
+    merged["hashtags"] = _best_scored_tag_set(
+        hashtag_sets,
+        topic,
+        int(hashtag_rules.get("min_count", 8)),
+        int(hashtag_rules.get("max_count", 12)),
+    )
+    merged["seo_tags"] = _best_scored_tag_set(
+        seo_tag_sets,
+        topic,
+        int(seo_tag_rules.get("min_count", 10)),
+        int(seo_tag_rules.get("max_count", 20)),
+    )
+    merged["thumbnail_text"] = _best_scored_thumbnail_text_set(thumbnail_sets, topic)
+
+    # Rebuild hook using the final winning title/thumbnail signal.
+    merged["hook"] = _build_hook_line(topic, merged["thumbnail_text"][0] if merged.get("thumbnail_text") else merged["titles"][0], "youtube")
+    merged["outline"] = _build_outline_points(topic, merged.get("thumbnail_ideas", []), "youtube")
+    merged["selection_meta"] = {
+        "section_scores": {
+            "best_title_score": _youtube_title_score(merged["titles"][0], topic, output_rules) if merged.get("titles") else 0,
+            "description_score": _quality_score_description(merged["description"], topic_keywords, output_rules),
+            "hashtags_score": _quality_score_tag_group(
+                merged["hashtags"],
+                topic_keywords,
+                int(hashtag_rules.get("min_count", 8)),
+                int(hashtag_rules.get("max_count", 12)),
+            ),
+            "seo_tags_score": _quality_score_tag_group(
+                merged["seo_tags"],
+                topic_keywords,
+                int(seo_tag_rules.get("min_count", 10)),
+                int(seo_tag_rules.get("max_count", 20)),
+            ),
+            "thumbnail_text_score": _quality_score_thumbnail_text(merged["thumbnail_text"], topic_keywords),
+        }
+    }
+    return merged
+
+
 def _attach_quality_scores(result: dict[str, Any], output_rules: dict[str, Any]) -> dict[str, Any]:
     topic_keywords = _topic_keywords(result.get("topic", ""))
+    platform = (result.get("platform") or "youtube").strip().lower()
     hashtag_rules = output_rules.get("hashtag_rules", {})
     seo_tag_rules = output_rules.get("seo_tag_rules", {})
     best_title = result.get("titles", [])[0] if result.get("titles") else ""
@@ -988,7 +1265,12 @@ def _attach_quality_scores(result: dict[str, Any], output_rules: dict[str, Any])
     description_readability = _readability_metrics(result.get("description", ""))
 
     title_scores = [
-        {"title": title, "score": _quality_score_title(title, result.get("topic", ""), output_rules)}
+        {
+            "title": title,
+            "score": _youtube_title_score(title, result.get("topic", ""), output_rules)
+            if platform == "youtube"
+            else _quality_score_title(title, result.get("topic", ""), output_rules),
+        }
         for title in result.get("titles", [])
     ]
     description_score = _quality_score_description(result.get("description", ""), topic_keywords, output_rules)
@@ -1112,17 +1394,39 @@ def _build_live_response(
     phrases = _extract_phrases(extraction_texts, limit=18)
     buckets = _bucket_keywords(phrases, topic_keywords, output_rules)
 
-    titles = _generate_titles(topic, content_format, buckets["primary"] + buckets["supporting"], ranked, rules, output_rules)
-    description = _generate_description(topic, buckets["primary"] + buckets["supporting"], ranked)
-    hashtags = _generate_hashtags(topic, buckets["primary"] + buckets["supporting"], rules)
-    seo_tags = _generate_seo_tags(topic, buckets["primary"] + buckets["supporting"] + buckets["broad"], ranked, output_rules)
-    thumbnail_text = _generate_thumbnail_text(buckets["primary"] + buckets["supporting"], rules)
+    phrase_stack = buckets["primary"] + buckets["supporting"] + buckets["broad"]
+    if platform == "youtube":
+        titles = _youtube_title_candidates(topic, content_format, phrase_stack, ranked, rules, output_rules)
+        description_candidates = _youtube_description_candidates(topic, phrase_stack, ranked)
+        description = _best_scored_description(description_candidates, topic, output_rules)
+        hashtag_candidates = _youtube_hashtag_candidates(topic, phrase_stack, rules, ranked)
+        hashtags = _best_scored_tag_set(
+            hashtag_candidates,
+            topic,
+            int(output_rules.get("hashtag_rules", {}).get("min_count", 8)),
+            int(output_rules.get("hashtag_rules", {}).get("max_count", 12)),
+        )
+        seo_tag_candidates = _youtube_seo_tag_candidates(topic, phrase_stack, ranked, output_rules)
+        seo_tags = _best_scored_tag_set(
+            seo_tag_candidates,
+            topic,
+            int(output_rules.get("seo_tag_rules", {}).get("min_count", 10)),
+            int(output_rules.get("seo_tag_rules", {}).get("max_count", 20)),
+        )
+        thumbnail_candidates = _youtube_thumbnail_text_candidates(phrase_stack, ranked, rules)
+        thumbnail_text = _best_scored_thumbnail_text_set(thumbnail_candidates, topic)
+    else:
+        titles = _generate_titles(topic, content_format, buckets["primary"] + buckets["supporting"], ranked, rules, output_rules)
+        description = _generate_description(topic, buckets["primary"] + buckets["supporting"], ranked)
+        hashtags = _generate_hashtags(topic, buckets["primary"] + buckets["supporting"], rules)
+        seo_tags = _generate_seo_tags(topic, buckets["primary"] + buckets["supporting"] + buckets["broad"], ranked, output_rules)
+        thumbnail_text = _generate_thumbnail_text(buckets["primary"] + buckets["supporting"], rules)
     thumbnail_ideas = _generate_thumbnail_ideas(topic, ranked, rules)
     platform_extras = _generate_platform_extras(
         topic=topic,
         platform=rules.platform,
         content_format=content_format,
-        phrases=buckets["primary"] + buckets["supporting"] + buckets["broad"],
+        phrases=phrase_stack,
         thumbnail_ideas=thumbnail_ideas,
     )
 
@@ -1175,6 +1479,18 @@ def _build_live_response(
         ai_candidate["research"] = deterministic_result["research"]
         ai_candidate["insights"] = deterministic_result["insights"]
         candidates.append(ai_candidate)
+
+    if platform == "youtube":
+        merged_youtube_result = _merge_youtube_candidates(
+            base_result=deterministic_result,
+            ai_candidate=ai_candidate,
+            topic=topic,
+            output_rules=output_rules,
+        )
+        merged_youtube_result["source"] = "youtube-live"
+        merged_youtube_result["research"] = deterministic_result["research"]
+        merged_youtube_result["insights"] = deterministic_result["insights"]
+        candidates.append(merged_youtube_result)
 
     return _select_candidates_with_meta(candidates, output_rules, ai_error=ai_error)
 
