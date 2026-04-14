@@ -1,0 +1,38 @@
+{
+  "platform": "instagram",
+  "max_titles": 6,
+  "max_hashtags": 12,
+  "title_templates": [
+    "{topic}: the angle everyone misses",
+    "{topic} explained in one reel",
+    "What actually matters about {topic}",
+    "{topic} for creators who want better reach"
+  ],
+  "description_templates": [
+    "Use this caption when you want to make {topic} clearer, faster, and more engaging for your audience.",
+    "Keep the first line sharp, give one useful insight, and end with a clear save or comment CTA."
+  ],
+  "thumbnail_idea_templates": [
+    "First-frame text with one bold promise about {topic}",
+    "Clean talking-head or product-led opening shot for {topic}",
+    "Carousel cover with one strong contrarian line on {topic}"
+  ],
+  "thumbnail_text_templates": [
+    "WATCH THIS",
+    "{topic} fast",
+    "SAVE THIS",
+    "DON'T MISS THIS"
+  ],
+  "hashtags_base": [
+    "#instagrammarketing",
+    "#contentstrategy",
+    "#socialmediatips",
+    "#creatorgrowth"
+  ],
+  "seo_tag_templates": [
+    "{topic}",
+    "{topic} reel ideas",
+    "{topic} instagram tips",
+    "{topic} content angle"
+  ]
+}

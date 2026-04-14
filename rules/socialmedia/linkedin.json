@@ -1,0 +1,36 @@
+{
+  "platform": "linkedin",
+  "max_titles": 5,
+  "max_hashtags": 8,
+  "title_templates": [
+    "{topic}: the strategic takeaway",
+    "What leaders should understand about {topic}",
+    "{topic} explained with a practical lens",
+    "The business case behind {topic}"
+  ],
+  "description_templates": [
+    "Use this post structure to explain {topic} with clarity, authority, and a stronger discussion angle.",
+    "Lead with a sharp point of view, support it with one useful example, and close with a discussion-first CTA."
+  ],
+  "thumbnail_idea_templates": [
+    "Carousel cover with one sharp insight about {topic}",
+    "Thought-leadership graphic built around the core lesson in {topic}"
+  ],
+  "thumbnail_text_templates": [
+    "KEY TAKEAWAY",
+    "WHAT MATTERS",
+    "READ THIS"
+  ],
+  "hashtags_base": [
+    "#linkedin",
+    "#thoughtleadership",
+    "#contentstrategy",
+    "#professionalbranding"
+  ],
+  "seo_tag_templates": [
+    "{topic}",
+    "{topic} linkedin post",
+    "{topic} business insight",
+    "{topic} strategy"
+  ]
+}

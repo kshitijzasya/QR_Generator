@@ -1,0 +1,46 @@
+{
+  "platform": "youtube",
+  "max_titles": 8,
+  "max_hashtags": 15,
+  "title_templates": [
+    "{topic}: The Ultimate Guide ({year})",
+    "How to {topic} Faster and Better",
+    "{topic} Explained in Simple Steps",
+    "Stop Making These {topic} Mistakes",
+    "{topic} Strategy That Actually Works",
+    "{topic} for Beginners: Start Here"
+  ],
+  "description_templates": [
+    "In this video, we break down {topic} with practical steps, examples, and a clear action plan.",
+    "Learn {topic} from scratch and avoid common mistakes so you can get better results quickly.",
+    "If you want better outcomes with {topic}, this walkthrough gives you a repeatable system to follow."
+  ],
+  "thumbnail_idea_templates": [
+    "Before vs After result for {topic}",
+    "3-step framework visual for {topic}",
+    "Big mistake alert style for {topic}",
+    "Checklist style thumbnail focused on {topic}"
+  ],
+  "thumbnail_text_templates": [
+    "STOP Doing This",
+    "{topic} in 3 Steps",
+    "Do This Instead",
+    "Beginner to Pro",
+    "Faster Results"
+  ],
+  "hashtags_base": [
+    "#youtube",
+    "#contentcreator",
+    "#growonyoutube",
+    "#videomarketing",
+    "#seo"
+  ],
+  "seo_tag_templates": [
+    "{topic}",
+    "{topic} tutorial",
+    "{topic} tips",
+    "{topic} strategy",
+    "how to {topic}",
+    "{topic} for beginners"
+  ]
+}

@@ -1,0 +1,30 @@
+image: python:3.11-slim
+
+stages:
+  - test
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  PYTHONDONTWRITEBYTECODE: "1"
+  PYTHONUNBUFFERED: "1"
+
+cache:
+  paths:
+    - .cache/pip
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"'
+    - when: never
+
+before_script:
+  - python --version
+  - pip install --upgrade pip
+  - pip install -r requirements.txt pytest
+
+test:
+  stage: test
+  script:
+    - PYTHONPATH=. pytest -q
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master"'

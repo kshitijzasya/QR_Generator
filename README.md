@@ -63,3 +63,31 @@ curl -X POST http://localhost:5000/api/qr \
   -F 'logo=@/absolute/path/logo.png' \
   --output qrcode.png
 ```
+
+## SEO Mode (Live YouTube Data)
+
+Set your YouTube Data API key before running:
+
+```bash
+export YOUTUBE_API_KEY=your_api_key_here
+```
+
+Pages:
+- `GET /seo` for the SEO UI
+
+API:
+- `POST /api/seo/generate`
+  - JSON fields:
+    - `topic` (required)
+    - `platform` (optional, default `youtube`)
+    - `live` (optional, default `true`)
+
+Example:
+
+```bash
+curl -X POST http://localhost:5000/api/seo/generate \
+  -H 'Content-Type: application/json' \
+  -d '{"platform":"youtube","topic":"how to start calisthenics","live":true}'
+```
+
+If `YOUTUBE_API_KEY` is missing or YouTube API fails, the endpoint falls back to local rule-based output and includes `source` and `live_error` in the response.

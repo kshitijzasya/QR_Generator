@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}" />
+    <title>AI Code Generator</title>
+    <style>
+      /* Fallback so page is not white if Tailwind CDN is blocked */
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: #020617;
+        color: #e2e8f0;
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+      }
+
+      .site-footer {
+        width: 100%;
+        max-width: 72rem;
+        margin: 0 auto 2.5rem;
+        padding: 0 1rem;
+      }
+
+      .site-footer__inner {
+        display: grid;
+        grid-template-columns: 1.3fr 1fr 1fr;
+        gap: 1rem;
+        border: 1px solid rgba(51, 65, 85, 0.9);
+        border-radius: 1rem;
+        background: rgba(15, 23, 42, 0.88);
+        padding: 1.25rem;
+      }
+
+      .site-footer__eyebrow,
+      .site-footer__heading {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #94a3b8;
+      }
+
+      .site-footer__copy {
+        margin: 0;
+        color: #cbd5e1;
+        font-size: 0.95rem;
+        line-height: 1.5;
+      }
+
+      .site-footer__links {
+        display: grid;
+        gap: 0.65rem;
+      }
+
+      .site-footer__link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.65rem;
+        color: #e2e8f0;
+        text-decoration: none;
+        font-size: 0.95rem;
+      }
+
+      .site-footer__link:hover {
+        color: #60a5fa;
+      }
+
+      .site-footer__link svg {
+        width: 1rem;
+        height: 1rem;
+        fill: currentColor;
+      }
+
+      @media (max-width: 760px) {
+        .site-footer__inner {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      if (!window.tailwind) {
+        const fallback = document.createElement("script");
+        fallback.src = "https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4";
+        document.head.appendChild(fallback);
+      }
+    </script>
+  </head>
+  <body class="min-h-screen bg-slate-950 text-slate-100">
+    <main id="code-app" class="mx-auto w-full max-w-6xl px-4 py-8 md:px-6 md:py-10"></main>
+    {% include "_site_footer.html" %}
+    <script type="module" src="{{ url_for('static', filename='js/code-main.js', v='20260315b') }}"></script>
+  </body>
+</html>
