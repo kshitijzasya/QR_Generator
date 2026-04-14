@@ -3,6 +3,9 @@ from pathlib import Path
 
 from flask import Flask
 
+from .extensions import db, migrate
+from .vault import init_vault_db
+
 
 def _load_dotenv() -> None:
     """Load KEY=VALUE entries from project .env into process env."""
@@ -25,6 +28,16 @@ def _load_dotenv() -> None:
 def create_app():
     _load_dotenv()
     app = Flask(__name__)
+    database_uri = (os.getenv("DATABASE_URL") or "").strip()
+    if not database_uri:
+        database_uri = f"sqlite:///{Path(__file__).resolve().parent.parent / 'app.db'}"
+
+    app.config["SQLALCHEMY_DATABASE_URI"] = database_uri
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+    db.init_app(app)
+    from . import models  # noqa: F401
+    migrate.init_app(app, db)
 
     from .routes import bp
 

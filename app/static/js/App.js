@@ -57,6 +57,14 @@ export default {
         window.location.href = "/code";
         return;
       }
+      if (moduleName === "assets") {
+        window.location.href = "/assets";
+        return;
+      }
+      if (moduleName === "vault") {
+        window.location.href = "/vault";
+        return;
+      }
       activeModule.value = moduleName;
     }
 
@@ -107,6 +115,16 @@ export default {
             <span class="tool-kicker">Build</span>
             <span class="tool-title">Code Generator</span>
             <span class="tool-copy">Start a dedicated code-generation workflow from one prompt.</span>
+          </button>
+          <button type="button" class="tool-card" @click="openModule('assets')">
+            <span class="tool-kicker">Inspect</span>
+            <span class="tool-title">Asset Extractor</span>
+            <span class="tool-copy">Analyze page markup, extracted assets, and heuristic SEO/performance scores.</span>
+          </button>
+          <button type="button" class="tool-card" @click="openModule('vault')">
+            <span class="tool-kicker">Store</span>
+            <span class="tool-title">Secret Vault</span>
+            <span class="tool-copy">Save public or key-protected notes, credentials, links, and imported records.</span>
           </button>
         </section>
       </template>
